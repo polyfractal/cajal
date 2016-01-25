@@ -1,11 +1,13 @@
 
 #[macro_use] extern crate enum_primitive;
-extern crate num;
+#[macro_use] extern crate log;
 
+extern crate num;
 extern crate roaring;
 extern crate rayon;
 extern crate rand;
 
+pub use grid::{Cell, CellType};
 use grid::Grid;
 use rayon::par_iter::*;
 
@@ -16,7 +18,7 @@ trait ReportMemory {
 }
 
 
-struct Cajal {
+pub struct Cajal {
     grid: Grid
 }
 
@@ -35,14 +37,22 @@ impl ReportMemory for Cajal {
 }
 
 impl Cajal {
-    fn new(size: usize, density: f32) -> Cajal {
+    pub fn new(size: u32, density: f32) -> Cajal {
         Cajal {
             grid: Grid::new(size, density)
         }
     }
 
-    fn grow(&self) {
+    pub fn grow(&mut self) {
+        self.grid.grow();
+    }
 
+    pub fn grow_step(&mut self) {
+        self.grid.grow_step();
+    }
+
+    pub fn get_cell<'a>(&'a self, x: u32, y: u32) -> &'a Cell {
+        self.grid.get_cell(x, y)
     }
 }
 

@@ -6,16 +6,12 @@ use rayon::par_iter::*;
 use rand::thread_rng;
 use rand::distributions::{IndependentSample, Range};
 use rand::Rng;
+use std::thread;
 
 
 pub use super::cell::{Cell, Chromosome, CellType, Gate};
 use super::zorder;
 use super::super::ReportMemory;
-
-pub enum GrowthPhase {
-    Axon,
-    Dendrite
-}
 
 pub struct Page {
     cells: Vec<Cell>,
@@ -25,7 +21,6 @@ pub struct Page {
 
 impl ReportMemory for Page {
     fn memory(&self) -> u32 {
-        println!(".");
         (self.cells.len() as u32 * 16) +
         (self.active.len() as u32 * 8) +  // <-- This is not true!
         ((self.changes.len() as u32 + self.changes.capacity() as u32) * 8) // Rough approximation
@@ -34,10 +29,11 @@ impl ReportMemory for Page {
 
 impl Page {
     pub fn new(density: f32) -> Page {
+        debug!("Creating new Page with {} density.", density);
         let mut rng = thread_rng();
 
         let num_cells = 4096;
-        let mut cells = Vec::with_capacity(num_cells);
+        let mut cells: Vec<Cell> = Vec::with_capacity(num_cells);
 
         for _ in 0..num_cells {
             let mut cell = Cell::new();
@@ -49,15 +45,35 @@ impl Page {
 
         // TODO roll this into the initialization loop
         let active_cells: u32 = (4096f32 * density).round() as u32;
+        debug!("Active cells in this Page: {}", active_cells);
 
-        let range_cells = Range::new(0, num_cells - 1);
-        let range_gate = Range::new(0, 4);
+        let range_cells = Range::new(1, 62);
 
         for _ in 0..active_cells {
-            let index = range_cells.ind_sample(&mut rng);
-            cells[index].set_cell_type(CellType::Body);
-            cells[index].set_gate(rng.gen());
-            bitmap.insert(index as u32);
+            let (x, y) = (range_cells.ind_sample(&mut rng), range_cells.ind_sample(&mut rng));
+            let index = zorder::xy_to_z(x, y);
+
+            cells[index as usize].set_cell_type(CellType::Body);
+
+            let axon_direction: Gate = rng.gen();
+            let dendrite_direction = match axon_direction {
+                Gate::North => Gate::South,
+                Gate::South => Gate::North,
+                Gate::East => Gate::West,
+                Gate::West => Gate::East
+            };
+
+            if let Some((target, change)) = Page::grow_local(&mut cells, x, y, CellType::Axon, axon_direction) {
+                cells[target as usize].set_cell_type(change.get_cell_type());
+                cells[target as usize].set_gate(change.get_gate());
+                bitmap.insert(target);
+            }
+
+            if let Some((target, change)) = Page::grow_local(&mut cells, x, y, CellType::Dendrite, dendrite_direction) {
+                cells[target as usize].set_cell_type(change.get_cell_type());
+                cells[target as usize].set_gate(change.get_gate());
+                bitmap.insert(target);
+            }
         }
 
         Page {
@@ -67,86 +83,111 @@ impl Page {
         }
     }
 
-    pub fn grow(&mut self, phase: GrowthPhase) -> u32 {
+    pub fn grow(&mut self) -> u32 {
+
+        debug!("Growing {} cells.", self.active.len());
+        debug!("Changelist size: {}", self.changes.len());
         if self.active.is_empty() == true {
             return 0;
         }
 
-        let cell_type = match phase {
-            GrowthPhase::Axon => CellType::Axon,
-            GrowthPhase::Dendrite => CellType::Dendrite
-        };
+        let mut cells = &mut self.cells;
 
         for index in self.active.iter() {
-            let mut cells = &mut self.cells;
-            let (mut x, mut y) = zorder::z_to_xy(index);
+            let (x, y) = zorder::z_to_xy(index);
+            let cell_type = cells[index as usize].get_cell_type();
+
+            debug!("active index: {}  ({},{})", index, x, y);
 
             // Explicitly going to clobber existing changes for simplicity
             if cells[index as usize].chromosome_contains(Chromosome::North) {
                 if y < 63 {
-                    if let Some(change) = Page::grow_local(cells, x, y, cell_type, Chromosome::North) {
-                        self.changes.insert(index, change);
+                    if let Some((target, change)) = Page::grow_local(cells, x, y, cell_type, Gate::North) {
+                        trace!("Inserting {:?} (Exists? {})", change, self.changes.get(&target).is_some());
+                        self.changes.insert(target, change);
                     }
                 }
             }
 
             if cells[index as usize].chromosome_contains(Chromosome::South) {
                 if y > 0 {
-                    if let Some(change) = Page::grow_local(cells, x, y, cell_type, Chromosome::South) {
-                        self.changes.insert(index, change);
+                    if let Some((target, change)) = Page::grow_local(cells, x, y, cell_type, Gate::South) {
+                        trace!("Inserting {:?} (Exists? {})", change, self.changes.get(&target).is_some());
+                        self.changes.insert(target, change);
                     }
                 }
             }
 
             if cells[index as usize].chromosome_contains(Chromosome::East) {
                 if x < 63 {
-                    if let Some(change) = Page::grow_local(cells, x, y, cell_type, Chromosome::East) {
-                        self.changes.insert(index, change);
+                    if let Some((target, change)) = Page::grow_local(cells, x, y, cell_type, Gate::East) {
+                        trace!("Inserting {:?} (Exists? {})", change, self.changes.get(&target).is_some());
+                        self.changes.insert(target, change);
                     }
                 }
             }
 
             if cells[index as usize].chromosome_contains(Chromosome::West) {
                 if x > 0 {
-                    if let Some(change) = Page::grow_local(cells, x, y, cell_type, Chromosome::West) {
-                        self.changes.insert(index, change);
+                    if let Some((target, change)) = Page::grow_local(cells, x, y, cell_type, Gate::West) {
+                        trace!("Inserting {:?} (Exists? {})", change, self.changes.get(&target).is_some());
+                        self.changes.insert(target, change);
                     }
                 }
             }
         }
 
-        // Clear out the active cell bitmap, and add the cells we just grew
-        self.active.clear();
-        for (k, v) in &self.changes {
-            self.active.insert(*k);
-        }
+        debug!("After growth: Changelist size: {}", self.changes.len());
 
         // Return the number of newly activated cells
         self.changes.len() as u32
     }
 
-    pub fn update(&self) {
+    pub fn update(&mut self) {
+
+        debug!("Updating {} cells.", self.changes.len());
+
+        // Clear out the active cell bitmap, and add the cells we just grew
+        debug!("Stale active cells: {}", self.active.len());
+        self.active.clear();
+        debug!("Cleared active cells: {}", self.active.len());
+
         if self.changes.len() == 0 {
             return;
         }
 
+        let mut i = 0;
+        for (k, v) in &self.changes {
+            //if i == 0 {
+                //debug!("To update: {} from {:?} to {:?}", k, self.cells[*k as usize].get_cell_type(), v.get_cell_type());
+            //}
+
+            i += 1;
+
+            //let (x, y) = zorder::z_to_xy(k);
+            self.cells[*k as usize].set_cell_type(v.get_cell_type());
+            self.cells[*k as usize].set_gate(v.get_gate());
+            self.active.insert(*k);
+        }
+
+        self.changes.clear();
+        debug!("New active cells: {}", self.active.len());
+        debug!("New Change list: {}", self.changes.len());
     }
 
     // TODO use i64 instead, so we can check for accidental negatives?
-    fn grow_local(cells: &mut Vec<Cell>, x: u32, y: u32, cell_type: CellType, direction: Chromosome) -> Option<Cell> {
-        println!("({},{})", x, y);
-        assert!((x > 63 && direction == Chromosome::East) != true);
-        assert!((y > 63 && direction == Chromosome::North) != true);
+    fn grow_local(cells: &mut Vec<Cell>, x: u32, y: u32, cell_type: CellType, direction: Gate) -> Option<(u32, Cell)> {
+        assert!((x > 63 && direction == Gate::East) != true);
+        assert!((y > 63 && direction == Gate::North) != true);
 
         let (target, gate) = match direction {
-            Chromosome::North => (zorder::xy_to_z(x, y + 1), Gate::South),
-            Chromosome::South => (zorder::xy_to_z(x, y - 1), Gate::North),
-            Chromosome::East => (zorder::xy_to_z(x + 1, y), Gate::West),
-            Chromosome::West => (zorder::xy_to_z(x - 1, y), Gate::East),
-            _ => unreachable!()
+            Gate::North => (zorder::xy_to_z(x, y + 1), Gate::South),
+            Gate::South => (zorder::xy_to_z(x, y - 1), Gate::North),
+            Gate::East => (zorder::xy_to_z(x + 1, y), Gate::West),
+            Gate::West => (zorder::xy_to_z(x - 1, y), Gate::East),
         };
 
-        Page::create_change(&mut cells[target as usize], cell_type, gate)
+        Page::create_change(&mut cells[target as usize], cell_type, gate).map(|cell| (target, cell))
     }
 
     fn create_change(cell: &mut Cell, cell_type: CellType, gate: Gate) -> Option<Cell>{
@@ -158,6 +199,11 @@ impl Page {
             return Some(change);
         }
         None
+    }
+
+    pub fn get_cell<'a>(&'a self, x: u32, y: u32) -> &'a Cell {
+        let z = zorder::xy_to_z(x, y);
+        &self.cells[z as usize]
     }
 }
 

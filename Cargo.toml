@@ -7,7 +7,6 @@ authors = ["Zachary Tong <zacharyjtong@gmail.com>"]
 [dependencies]
 roaring = "0.4.0"
 rustc-serialize = "*"
-env_logger = "*"
 log = "*"
 toml = "*"
 rand = "*"
@@ -16,3 +15,16 @@ num = "0.1.30"
 
 [dependencies.rayon]
 git = "https://github.com/nikomatsakis/rayon"
+
+[[example]]
+name = "viz"
+path = "examples/viz/main.rs"
+
+[dev-dependencies]
+piston = "0.17.0"
+piston_window = "0.34.0"
+piston2d-graphics = "0.13.0"
+pistoncore-glutin_window = "0.20.0"
+piston2d-opengl_graphics = "0.23.0"
+log4rs = "0.3.3"
+time = "0.1"
