@@ -2,7 +2,7 @@
 // Credit to: https://fgiesen.wordpress.com/2009/12/13/decoding-morton-codes/
 
 pub fn xy_to_z(x: u32, y: u32) -> u32 {
-    return (split_by_2(y) << 1) + split_by_2(x);
+    (split_by_2(y) << 1) + split_by_2(x)
 }
 
 fn split_by_2(x: u32) -> u32  {
@@ -15,7 +15,7 @@ fn split_by_2(x: u32) -> u32  {
 }
 
 pub fn z_to_xy(z: u32) -> (u32, u32) {
-    (compact_by_2(z >> 0), compact_by_2(z >> 1))
+    (compact_by_2(z), compact_by_2(z >> 1))
 }
 
 fn compact_by_2(z:u32) -> u32 {

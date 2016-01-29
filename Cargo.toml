@@ -12,12 +12,10 @@ toml = "*"
 rand = "*"
 enum_primitive = "*"
 num = "0.1.30"
+clippy = "*"
 
 [dependencies.rayon]
 git = "https://github.com/nikomatsakis/rayon"
-
-# [dev-dependencies.clippy]
-# version = "*"
 
 [[example]]
 name = "viz"

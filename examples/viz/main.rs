@@ -6,9 +6,8 @@ extern crate time;
 
 
 use piston_window::*;
-use cajal::{Cajal, CellType, Cell};
+use cajal::{Cajal, CellType};
 use time::{SteadyTime, Duration};
-use std::thread;
 
 
 pub const SQ_SIZE: u32 = 2;
@@ -18,7 +17,7 @@ fn main() {
 
     let num_pages = 7u32;
     let dimension = num_pages * 64u32;
-    let mut cajal = Cajal::new(num_pages, 0.05);
+    let mut cajal = Cajal::new(num_pages, 0.05, &[1,2,3,4]);
 
     let window: PistonWindow =
         WindowSettings::new("Cajal Visualization", [dimension * SQ_SIZE, dimension * SQ_SIZE])

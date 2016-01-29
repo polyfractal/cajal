@@ -1,12 +1,8 @@
 
-use std::slice::IterMut;
 use roaring::RoaringBitmap;
 use std::collections::HashMap;
-use rayon::par_iter::*;
-use rand::thread_rng;
 use rand::distributions::{IndependentSample, Range};
 use rand::{Rng, SeedableRng, StdRng};
-use std::thread;
 
 pub use super::cell::{Cell, Chromosome, CellType, Gate};
 use super::zorder;
@@ -38,7 +34,7 @@ impl ReportMemory for Page {
 }
 
 impl Page {
-    pub fn new<'a>(density: f32, offset_x: u32, offset_y: u32, seed: &'a [usize]) -> Page {
+    pub fn new(density: f32, offset_x: u32, offset_y: u32, seed: &[usize]) -> Page {
         debug!("Creating new Page with {} density.", density);
         //let mut rng = thread_rng();
         let mut rng: StdRng = SeedableRng::from_seed(seed);
@@ -181,7 +177,7 @@ impl Page {
         self.active.clear();
         debug!("Cleared active cells: {}", self.active.len());
 
-        if self.changes.len() == 0 {
+        if self.changes.is_empty() {
             return;
         }
 
@@ -266,12 +262,12 @@ impl Page {
         change
     }
 
-    pub fn get_cell<'a>(&'a self, x: u32, y: u32) -> &'a Cell {
+    pub fn get_cell(&self, x: u32, y: u32) -> &Cell {
         let z = zorder::xy_to_z(x, y);
         &self.cells[z as usize]
     }
 
-    pub fn get_mut_cell<'a>(&'a mut self, x: u32, y: u32) -> &'a mut Cell {
+    pub fn get_mut_cell(&mut self, x: u32, y: u32) -> &mut Cell {
         let z = zorder::xy_to_z(x, y);
         &mut self.cells[z as usize]
     }

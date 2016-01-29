@@ -1,10 +1,6 @@
 
-use std::slice::IterMut;
-use roaring::RoaringBitmap;
-use std::collections::HashMap;
 use rayon::par_iter::*;
-use rand::distributions::{IndependentSample, Range};
-use self::page::{Page, RemoteChange};
+use self::page::{Page};
 use super::ReportMemory;
 
 pub use self::page::{Cell, CellType};
@@ -30,7 +26,7 @@ impl ReportMemory for Grid {
 }
 
 impl Grid {
-    pub fn new<'a>(size: u32, density: f32, seed: &'a [usize]) -> Grid {
+    pub fn new(size: u32, density: f32, seed: &[usize]) -> Grid {
         //todo assert size
         let num_pages = size * size;
 
@@ -112,18 +108,18 @@ impl Grid {
     }
 
 
-    fn get_mut_page<'a>(&'a mut self, x: u32, y: u32) -> &'a mut Page {
+    fn get_mut_page(&mut self, x: u32, y: u32) -> &mut Page {
         let i = x / 64 + ((y / 64) * self.pages_per_side);
         debug!("get_mut_page: ({},{}) -> {}", x, y, i);
         &mut self.pages[i as usize]
     }
 
-    pub fn get_cell<'a>(&'a self, x: u32, y: u32) -> &'a Cell {
+    pub fn get_cell(&self, x: u32, y: u32) -> &Cell {
         let i = x / 64 + ((y / 64) * self.pages_per_side);
         self.pages[i as usize].get_cell(x % 64, y % 64)
     }
 
-    fn get_mut_cell<'a>(&'a mut self, x: u32, y: u32) -> &'a mut Cell {
+    fn get_mut_cell(&mut self, x: u32, y: u32) -> &mut Cell {
         let i = x / 64 + ((y / 64) * self.pages_per_side);
         self.pages[i as usize].get_mut_cell(x % 64, y % 64)
     }

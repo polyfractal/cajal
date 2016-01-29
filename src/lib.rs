@@ -1,5 +1,6 @@
-//#![feature(plugin)]
-//#![plugin(clippy)]
+#![feature(plugin)]
+#![plugin(clippy)]
+
 #![feature(test)]
 extern crate test;
 
@@ -11,11 +12,8 @@ extern crate roaring;
 extern crate rayon;
 extern crate rand;
 
-
-
 pub use grid::{Cell, CellType};
 use grid::Grid;
-use rayon::par_iter::*;
 
 mod grid;
 
@@ -43,7 +41,7 @@ impl ReportMemory for Cajal {
 }
 
 impl Cajal {
-    pub fn new<'a>(size: u32, density: f32, seed: &'a [usize]) -> Cajal {
+    pub fn new(size: u32, density: f32, seed: &[usize]) -> Cajal {
         Cajal {
             grid: Grid::new(size, density, seed)
         }
@@ -57,7 +55,7 @@ impl Cajal {
         self.grid.grow_step();
     }
 
-    pub fn get_cell<'a>(&'a self, x: u32, y: u32) -> &'a Cell {
+    pub fn get_cell(&self, x: u32, y: u32) -> &Cell {
         self.grid.get_cell(x, y)
     }
 }

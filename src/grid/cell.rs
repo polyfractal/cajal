@@ -1,8 +1,8 @@
 
 use num::FromPrimitive;
 use std::fmt;
-use std::ops::{BitAnd, BitOr, Shl, Not};
-use rand::{thread_rng, Rng};
+use std::ops::{BitAnd, BitOr, Not};
+use rand::{Rng};
 use rand::Rand;
 use rand::distributions::{IndependentSample, Range};
 
@@ -85,17 +85,17 @@ enum_from_primitive! {
         South = 0b0100,
         East  = 0b1000,
 
-        North_West  = 0b0011,
-        North_South = 0b0101,
-        North_East  = 0b1001,
-        West_South  = 0b0110,
-        West_East   = 0b1010,
-        South_East  = 0b1100,
+        NorthWest  = 0b0011,
+        NorthSouth = 0b0101,
+        NorthEast  = 0b1001,
+        WestSouth  = 0b0110,
+        WestEast   = 0b1010,
+        SouthEast  = 0b1100,
 
-        North_West_South  = 0b0111,
-        North_East_South  = 0b1101,
-        North_West_East   = 0b1011,
-        West_South_East   = 0b1110,
+        NorthWestSouth  = 0b0111,
+        NorthEastSouth  = 0b1101,
+        NorthWestEast   = 0b1011,
+        WestSouthEast   = 0b1110,
 
         All = 0b1111
 
@@ -111,17 +111,17 @@ impl fmt::Binary for Chromosome {
             Chromosome::South => 0b0100,
             Chromosome::East => 0b1000,
 
-            Chromosome::North_West  => 0b0011,
-            Chromosome::North_South => 0b0101,
-            Chromosome::North_East  => 0b1001,
-            Chromosome::West_South  => 0b0110,
-            Chromosome::West_East   => 0b1010,
-            Chromosome::South_East  => 0b1100,
+            Chromosome::NorthWest  => 0b0011,
+            Chromosome::NorthSouth => 0b0101,
+            Chromosome::NorthEast  => 0b1001,
+            Chromosome::WestSouth  => 0b0110,
+            Chromosome::WestEast   => 0b1010,
+            Chromosome::SouthEast  => 0b1100,
 
-            Chromosome::North_West_South  => 0b0111,
-            Chromosome::North_East_South  => 0b1101,
-            Chromosome::North_West_East   => 0b1011,
-            Chromosome::West_South_East   => 0b1110,
+            Chromosome::NorthWestSouth  => 0b0111,
+            Chromosome::NorthEastSouth  => 0b1101,
+            Chromosome::NorthWestEast   => 0b1011,
+            Chromosome::WestSouthEast   => 0b1110,
 
             Chromosome::All => 0b1111
 
@@ -140,17 +140,17 @@ impl Rand for Chromosome {
             3 => Chromosome::South,
             4 => Chromosome::East,
 
-            5 => Chromosome::North_West,
-            6 => Chromosome::North_South,
-            7 => Chromosome::North_East,
-            8 => Chromosome::West_South,
-            9 => Chromosome::West_East,
-            10 => Chromosome::South_East,
+            5 => Chromosome::NorthWest,
+            6 => Chromosome::NorthSouth,
+            7 => Chromosome::NorthEast,
+            8 => Chromosome::WestSouth,
+            9 => Chromosome::WestEast,
+            10 => Chromosome::SouthEast,
 
-            11 => Chromosome::North_West_South,
-            12 => Chromosome::North_East_South,
-            13 => Chromosome::North_West_East,
-            14 => Chromosome::West_South_East,
+            11 => Chromosome::NorthWestSouth,
+            12 => Chromosome::NorthEastSouth,
+            13 => Chromosome::NorthWestEast,
+            14 => Chromosome::WestSouthEast,
 
             15 => Chromosome::All,
             _ => unreachable!()
@@ -161,8 +161,8 @@ impl Rand for Chromosome {
 impl BitAnd for Chromosome {
     type Output = Chromosome;
 
-    fn bitand(self, _rhs: Chromosome) -> Chromosome {
-        match Chromosome::from_u16(self as u16 & _rhs as u16) {
+    fn bitand(self, rhs: Chromosome) -> Chromosome {
+        match Chromosome::from_u16(self as u16 & rhs as u16) {
             Some(c) => c,
             None => unreachable!()
         }
@@ -172,8 +172,8 @@ impl BitAnd for Chromosome {
 impl BitOr for Chromosome {
     type Output = Chromosome;
 
-    fn bitor(self, _rhs: Chromosome) -> Chromosome {
-        match Chromosome::from_u16(self as u16 | _rhs as u16) {
+    fn bitor(self, rhs: Chromosome) -> Chromosome {
+        match Chromosome::from_u16(self as u16 | rhs as u16) {
             Some(c) => c,
             None => unreachable!()
         }
@@ -278,8 +278,8 @@ mod test {
         c.set_chromosome(Chromosome::Block);
         assert!(c.get_chromosome() == Chromosome::Block);
 
-        c.set_chromosome(Chromosome::West_South);
-        assert!(c.get_chromosome() == Chromosome::West_South);
+        c.set_chromosome(Chromosome::WestSouth);
+        assert!(c.get_chromosome() == Chromosome::WestSouth);
 
         c.set_chromosome(Chromosome::North);
         assert!(c.get_chromosome() == Chromosome::North);
@@ -312,12 +312,12 @@ mod test {
         assert!(c.chromosome_contains(Chromosome::Block));
         assert!(!c.chromosome_contains(Chromosome::North));
 
-        c.set_chromosome(Chromosome::North_South);
-        assert!(c.get_chromosome() == Chromosome::North_South);
+        c.set_chromosome(Chromosome::NorthSouth);
+        assert!(c.get_chromosome() == Chromosome::NorthSouth);
         assert!(!c.chromosome_contains(Chromosome::Block));
         assert!(c.chromosome_contains(Chromosome::North));
         assert!(c.chromosome_contains(Chromosome::South));
-        assert!(c.chromosome_contains(Chromosome::North_South));
+        assert!(c.chromosome_contains(Chromosome::NorthSouth));
     }
 
 }
