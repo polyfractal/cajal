@@ -1,3 +1,7 @@
+//#![feature(plugin)]
+//#![plugin(clippy)]
+#![feature(test)]
+extern crate test;
 
 #[macro_use] extern crate enum_primitive;
 #[macro_use] extern crate log;
@@ -6,6 +10,8 @@ extern crate num;
 extern crate roaring;
 extern crate rayon;
 extern crate rand;
+
+
 
 pub use grid::{Cell, CellType};
 use grid::Grid;
@@ -37,9 +43,9 @@ impl ReportMemory for Cajal {
 }
 
 impl Cajal {
-    pub fn new(size: u32, density: f32) -> Cajal {
+    pub fn new<'a>(size: u32, density: f32, seed: &'a [usize]) -> Cajal {
         Cajal {
-            grid: Grid::new(size, density)
+            grid: Grid::new(size, density, seed)
         }
     }
 
@@ -61,12 +67,27 @@ impl Cajal {
 
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::Cajal;
     use super::ReportMemory;
+    use test::Bencher;
 
     #[test]
     fn default_params() {
         let c = Cajal::default();
+    }
+
+    #[bench]
+    fn bench_new_5x5(b: &mut Bencher) {
+        b.iter(|| {
+            let cajal = Cajal::new(5, 0.05, &[1, 2, 3, 4]);
+        });
+    }
+
+    #[bench]
+    fn bench_new_2x2(b: &mut Bencher) {
+        b.iter(|| {
+            let cajal = Cajal::new(2, 0.05, &[1, 2, 3, 4]);
+        });
     }
 }

@@ -1,7 +1,7 @@
 
 use num::FromPrimitive;
 use std::fmt;
-use std::ops::{BitAnd, BitOr, Shl};
+use std::ops::{BitAnd, BitOr, Shl, Not};
 use rand::{thread_rng, Rng};
 use rand::Rand;
 use rand::distributions::{IndependentSample, Range};
@@ -35,6 +35,21 @@ enum_from_primitive! {
         East = 0b11
     }
 }
+
+impl Not for Gate {
+    type Output = Gate;
+
+    fn not(self) -> Gate {
+        match self {
+           Gate::North => Gate::South,
+           Gate::South => Gate::North,
+           Gate::East => Gate::West,
+           Gate::West => Gate::East
+        }
+    }
+}
+
+
 
 impl fmt::Binary for Gate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

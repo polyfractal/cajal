@@ -4,20 +4,21 @@ extern crate cajal;
 extern crate log4rs;
 extern crate time;
 
+
 use piston_window::*;
 use cajal::{Cajal, CellType, Cell};
 use time::{SteadyTime, Duration};
 use std::thread;
 
 
-pub const SQ_SIZE: u32 = 7;
+pub const SQ_SIZE: u32 = 2;
 
 fn main() {
     log4rs::init_file("examples/viz/log.toml", Default::default()).unwrap();
 
-    let num_pages = 1u32;
+    let num_pages = 7u32;
     let dimension = num_pages * 64u32;
-    let mut cajal = Cajal::new(num_pages, 0.005);
+    let mut cajal = Cajal::new(num_pages, 0.05);
 
     let window: PistonWindow =
         WindowSettings::new("Cajal Visualization", [dimension * SQ_SIZE, dimension * SQ_SIZE])
@@ -29,10 +30,10 @@ fn main() {
 
     for e in window {
         e.draw_2d(|c, g| {
-            if SteadyTime::now() - first < Duration::seconds(10) {
-                return;
-            }
-            if SteadyTime::now() - last > Duration::milliseconds(500) {
+            //if SteadyTime::now() - first < Duration::seconds(10) {
+            //    return;
+            //}
+            if SteadyTime::now() - last > Duration::milliseconds(40) {
                 last = SteadyTime::now();
                 cajal.grow_step();
             }
