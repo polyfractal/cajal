@@ -6,15 +6,28 @@ use rand::{Rng};
 use rand::Rand;
 use rand::distributions::{IndependentSample, Range};
 
-const CELL_TYPE_MASK: u16  = 0b000_0000_0000_00_111;
-const GATE_MASK: u16      = 0b000_0000_0000_11_000;
-const SIGNAL_MASK: u16    = 0b000_0000_1111_00_000;
-const CHROMO_MASK: u16    = 0b000_1111_0000_00_000;
+const CELL_TYPE_MASK: u32  = 0b0000000000_00_00_00_000000_0000_0_00_111;  // ---
+const GATE_MASK: u32       = 0b0000000000_00_00_00_000000_0000_0_11_000;  // | Growth Phase
+const STIM_MASK: u32       = 0b0000000000_00_00_00_000000_0000_1_00_000;  // |
+const CHROMO_MASK: u32     = 0b0000000000_00_00_00_000000_1111_0_00_000;  // ---
 
-const CELL_TYPE_OFFSET: u8 = 0;
-const GATE_OFFSET: u8      = 3;
-const SIGNAL_OFFSET: u8    = 5;
-const CHROMO_OFFSET: u8    = 9;
+const STRENGTH_MASK: u32   = 0b0000000000_00_00_00_000000_1111_0_00_000;  // --
+const THRESHOLD_MASK: u32  = 0b0000000000_00_00_00_111111_0000_0_00_000;  // | Signal Phase
+const POT_1_MASK: u32      = 0b0000000000_00_00_11_000000_0000_0_00_000;  // |
+const POT_2_MASK: u32      = 0b0000000000_00_11_00_000000_0000_0_00_000;  // |
+const POT_3_MASK: u32      = 0b0000000000_11_00_00_000000_0000_0_00_000;  // ---
+
+const CELL_TYPE_OFFSET: u8  = 0;
+const GATE_OFFSET: u8       = 3;
+const STIM_OFFSET: u8       = 5;
+const CHROMO_OFFSET: u8     = 6;
+
+const STRENGTH_OFFSET: u8   = 6;
+const THRESHOLD_OFFSET: u8  = 10;
+const POT_1_OFFSET: u8      = 16;
+const POT_2_OFFSET: u8      = 18;
+const POT_3_OFFSET: u8      = 20;
+
 
 enum_from_primitive! {
     #[derive(Debug, PartialEq, Copy, Clone)]
@@ -160,7 +173,7 @@ impl BitAnd for Chromosome {
     type Output = Chromosome;
 
     fn bitand(self, rhs: Chromosome) -> Chromosome {
-        match Chromosome::from_u16(self as u16 & rhs as u16) {
+        match Chromosome::from_u32(self as u32 & rhs as u32) {
             Some(c) => c,
             None => unreachable!()
         }
@@ -171,7 +184,7 @@ impl BitOr for Chromosome {
     type Output = Chromosome;
 
     fn bitor(self, rhs: Chromosome) -> Chromosome {
-        match Chromosome::from_u16(self as u16 | rhs as u16) {
+        match Chromosome::from_u32(self as u32 | rhs as u32) {
             Some(c) => c,
             None => unreachable!()
         }
@@ -192,7 +205,7 @@ impl From<Gate> for Chromosome {
 
 #[derive(Clone, Copy, Debug)]
 pub struct Cell {
-    data: u16
+    data: u32
 }
 
 impl Cell {
@@ -203,37 +216,33 @@ impl Cell {
     }
 
     pub fn set_cell_type(&mut self, cell_type: CellType) {
-        self.data = (self.data & !CELL_TYPE_MASK) | ((cell_type as u16) << CELL_TYPE_OFFSET);
+        self.data = (self.data & !CELL_TYPE_MASK) | ((cell_type as u32) << CELL_TYPE_OFFSET);
     }
 
     pub fn get_cell_type(&self) -> CellType {
-        match CellType::from_u16((self.data & CELL_TYPE_MASK) >> CELL_TYPE_OFFSET) {
+        match CellType::from_u32((self.data & CELL_TYPE_MASK) >> CELL_TYPE_OFFSET) {
             Some(ct) => ct,
             None => unreachable!()
         }
     }
 
     pub fn set_gate(&mut self, gate: Gate) {
-        self.data = (self.data & !GATE_MASK) | ((gate as u16) << GATE_OFFSET);
+        self.data = (self.data & !GATE_MASK) | ((gate as u32) << GATE_OFFSET);
     }
 
     pub fn get_gate(&self) -> Gate {
-        match Gate::from_u16((self.data & GATE_MASK) >> GATE_OFFSET) {
+        match Gate::from_u32((self.data & GATE_MASK) >> GATE_OFFSET) {
             Some(g) => g,
             None => unreachable!()
         }
     }
 
     pub fn set_chromosome(&mut self, chromo: Chromosome) {
-        //println!("chromo: {:#b}", chromo);
-        //println!("mask: {:#b}", CHROMO_MASK);
-        //println!("self.data: {:#b}", self.data);
-        //println!("shift and mask: {:#b}", (self.data & !CHROMO_MASK) | ((chromo as u16) << CHROMO_OFFSET));
-        self.data = (self.data & !CHROMO_MASK) | ((chromo as u16) << CHROMO_OFFSET);
+        self.data = (self.data & !CHROMO_MASK) | ((chromo as u32) << CHROMO_OFFSET);
     }
 
     pub fn get_chromosome(&self) -> Chromosome {
-        match Chromosome::from_u16((self.data & CHROMO_MASK) >> CHROMO_OFFSET) {
+        match Chromosome::from_u32((self.data & CHROMO_MASK) >> CHROMO_OFFSET) {
             Some(c) => c,
             None => unreachable!()
         }
