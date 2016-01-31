@@ -60,10 +60,12 @@ impl Page {
 
         let num_cells = 4096;
         let mut cells: Vec<Cell> = Vec::with_capacity(num_cells);
+        let range_threshold = Range::new(0, 63);
 
         for _ in 0..num_cells {
             let mut cell = Cell::new();
             cell.set_chromosome(rng.gen());
+            cell.set_threshold(range_threshold.ind_sample(&mut rng));
             cells.push(cell);
         }
 

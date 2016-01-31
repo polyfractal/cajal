@@ -255,6 +255,17 @@ impl Cell {
             _ => (self.get_chromosome() & other) == other
         }
     }
+
+    pub fn set_threshold(&mut self, threshold: u8) {
+        self.data = match threshold {
+            0...63 => (self.data & !THRESHOLD_MASK) | ((threshold as u32) << THRESHOLD_OFFSET),
+            _ => (self.data & !THRESHOLD_MASK) | (63 << THRESHOLD_OFFSET)
+        };
+    }
+
+    pub fn get_threshold(&self) -> u8 {
+        ((self.data & THRESHOLD_MASK) >> THRESHOLD_OFFSET) as u8
+    }
 }
 
 #[cfg(test)]
@@ -336,6 +347,19 @@ mod test {
         assert!(c.chromosome_contains(Chromosome::North));
         assert!(c.chromosome_contains(Chromosome::South));
         assert!(c.chromosome_contains(Chromosome::NorthSouth));
+    }
+
+    #[test]
+    fn set_threshold() {
+        let mut c = Cell::new();
+        assert!(c.get_threshold() == 0u8);
+
+        c.set_threshold(16);
+        assert!(c.get_threshold() == 16u8);
+
+        // overflow
+        c.set_threshold(90);
+        assert!(c.get_threshold() == 63u8);
     }
 
 }
