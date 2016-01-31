@@ -49,8 +49,6 @@ impl Not for Gate {
     }
 }
 
-
-
 impl fmt::Binary for Gate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let val = match *self {
@@ -176,6 +174,17 @@ impl BitOr for Chromosome {
         match Chromosome::from_u16(self as u16 | rhs as u16) {
             Some(c) => c,
             None => unreachable!()
+        }
+    }
+}
+
+impl From<Gate> for Chromosome {
+    fn from(gate: Gate) -> Chromosome {
+        match gate {
+            Gate::North => Chromosome::North,
+            Gate::South => Chromosome::South,
+            Gate::East  => Chromosome::East,
+            Gate::West  => Chromosome::West
         }
     }
 }

@@ -7,6 +7,10 @@ use rand::{Rng, SeedableRng, StdRng};
 pub use super::cell::{Cell, Chromosome, CellType, Gate};
 use super::zorder;
 use super::super::ReportMemory;
+use self::ChangeType::{Remote, Local, NoChange};
+
+
+static CARDINAL_DIRECTIONS: &'static [Gate] = &[Gate::North, Gate::South, Gate::East, Gate::West];
 
 pub struct Page {
     cells: Vec<Cell>,
@@ -23,6 +27,21 @@ pub struct RemoteChange {
     pub y: u32,
     pub cell: Cell,
     pub travel_direction: Gate
+}
+
+enum ChangeType {
+    Local((u32, Cell)),
+    Remote(RemoteChange),
+    NoChange
+}
+
+impl ChangeType {
+    pub fn is_some(&self) -> bool {
+        match *self {
+            NoChange => false,
+            _ => true
+        }
+    }
 }
 
 impl ReportMemory for Page {
@@ -65,13 +84,13 @@ impl Page {
             let axon_direction: Gate = rng.gen();
             let dendrite_direction = !axon_direction;
 
-            if let Some((target, change)) = Page::grow_local(&mut cells, x, y, CellType::Axon, axon_direction) {
+            if let Local((target, change)) = Page::grow_local(&mut cells, x, y, CellType::Axon, axon_direction) {
                 cells[target as usize].set_cell_type(change.get_cell_type());
                 cells[target as usize].set_gate(change.get_gate());
                 bitmap.insert(target);
             }
 
-            if let Some((target, change)) = Page::grow_local(&mut cells, x, y, CellType::Dendrite, dendrite_direction) {
+            if let Local((target, change)) = Page::grow_local(&mut cells, x, y, CellType::Dendrite, dendrite_direction) {
                 cells[target as usize].set_cell_type(change.get_cell_type());
                 cells[target as usize].set_gate(change.get_gate());
                 bitmap.insert(target);
@@ -102,62 +121,12 @@ impl Page {
             let (x, y) = zorder::z_to_xy(index);
             let cell_type = cells[index as usize].get_cell_type();
 
-            trace!("active index: {}  ({},{})", index, x, y);
+            for direction in CARDINAL_DIRECTIONS {
+                if cells[index as usize].chromosome_contains(Chromosome::from(*direction)) {
+                    let change = Page::process_chromosome_direction(*direction, &mut cells, x, y,
+                                    self.offset_x, self.offset_y, cell_type);
 
-            // Explicitly going to clobber existing changes for simplicity
-            if cells[index as usize].chromosome_contains(Chromosome::North) {
-                if y < 63 {
-                    if let Some((target, change)) = Page::grow_local(cells, x, y, cell_type, Gate::North) {
-                        trace!("Inserting {:?} (Exists? {})", change, self.changes.get(&target).is_some());
-                        self.changes.insert(target, change);
-                    }
-                } else {
-                    if let Some(change) = Page::create_remote_change(x, y, self.offset_x,
-                                            self.offset_y, cell_type, Gate::North) {
-                        self.remote_changes.push(change);
-                    }
-                }
-            }
-
-            if cells[index as usize].chromosome_contains(Chromosome::South) {
-                if y > 0 {
-                    if let Some((target, change)) = Page::grow_local(cells, x, y, cell_type, Gate::South) {
-                        trace!("Inserting {:?} (Exists? {})", change, self.changes.get(&target).is_some());
-                        self.changes.insert(target, change);
-                    }
-                } else {
-                    if let Some(change) = Page::create_remote_change(x, y, self.offset_x,
-                                            self.offset_y, cell_type, Gate::South) {
-                        self.remote_changes.push(change);
-                    }
-                }
-            }
-
-            if cells[index as usize].chromosome_contains(Chromosome::East) {
-                if x < 63 {
-                    if let Some((target, change)) = Page::grow_local(cells, x, y, cell_type, Gate::East) {
-                        trace!("Inserting {:?} (Exists? {})", change, self.changes.get(&target).is_some());
-                        self.changes.insert(target, change);
-                    }
-                } else {
-                    if let Some(change) = Page::create_remote_change(x, y, self.offset_x,
-                                            self.offset_y, cell_type, Gate::East) {
-                        self.remote_changes.push(change);
-                    }
-                }
-            }
-
-            if cells[index as usize].chromosome_contains(Chromosome::West) {
-                if x > 0 {
-                    if let Some((target, change)) = Page::grow_local(cells, x, y, cell_type, Gate::West) {
-                        trace!("Inserting {:?} (Exists? {})", change, self.changes.get(&target).is_some());
-                        self.changes.insert(target, change);
-                    }
-                } else {
-                    if let Some(change) = Page::create_remote_change(x, y, self.offset_x,
-                                            self.offset_y, cell_type, Gate::West) {
-                        self.remote_changes.push(change);
-                    }
+                    Page::persist_change(&mut self.changes, &mut self.remote_changes, change);
                 }
             }
         }
@@ -166,6 +135,26 @@ impl Page {
 
         // Return the number of newly activated cells
         (self.changes.len() as u32, Some(self.remote_changes.clone()))
+    }
+
+    fn persist_change(local: &mut HashMap<u32, Cell>, remote: &mut Vec<RemoteChange>, change: ChangeType) {
+        match change {
+            Local((target, change)) => {local.insert(target, change);},
+            Remote(change) => {remote.push(change);},
+            NoChange => {}
+        }
+    }
+
+    fn process_chromosome_direction(travel_direction: Gate, cells: &mut Vec<Cell>,
+                                x: u32, y: u32, offset_x: u32, offset_y: u32, cell_type: CellType) -> ChangeType {
+
+        match (travel_direction, x, y) {
+            (Gate::North, _, y) if y < 63 => Page::grow_local(cells, x, y, cell_type, travel_direction),
+            (Gate::South, _, y) if y > 0  => Page::grow_local(cells, x, y, cell_type, travel_direction),
+            (Gate::East, x, _) if x < 63  => Page::grow_local(cells, x, y, cell_type, travel_direction),
+            (Gate::West, x, _) if x > 0   => Page::grow_local(cells, x, y, cell_type, travel_direction),
+            (_, _, _) =>  Page::create_remote_change(x, y, offset_x, offset_y, cell_type, travel_direction)
+        }
     }
 
     pub fn update(&mut self) {
@@ -205,11 +194,11 @@ impl Page {
     }
 
     fn create_remote_change(x: u32, y: u32, offset_x: u32, offset_y: u32,
-                            cell_type: CellType, travel_direction: Gate) -> Option<RemoteChange> {
+                            cell_type: CellType, travel_direction: Gate) -> ChangeType {
         debug!("create_remote_change: ({},{}) offsets: ({},{}) {:?}", x, y, offset_x, offset_y, travel_direction);
 
         if (offset_x == 0 && travel_direction == Gate::West) || (offset_y == 0 && travel_direction == Gate::South) {
-            return None;
+            return NoChange;
         }
 
         let (x, y) = match travel_direction {
@@ -220,7 +209,7 @@ impl Page {
         };
         debug!("create_remote_change: new: ({},{}) {:?}", x, y, travel_direction);
 
-        Some(RemoteChange {
+        Remote(RemoteChange {
             x: x,
             y: y,
             cell: Page::create_change(cell_type, !travel_direction),
@@ -230,16 +219,16 @@ impl Page {
 
     // TODO use i64 instead, so we can check for accidental negatives?
     fn grow_local(cells: &mut Vec<Cell>, x: u32, y: u32,
-            cell_type: CellType, travel_direction: Gate) -> Option<(u32, Cell)> {
+            cell_type: CellType, travel_direction: Gate) -> ChangeType {
         assert!((x > 63 && travel_direction == Gate::East) != true);
         assert!((y > 63 && travel_direction == Gate::North) != true);
 
         let (target, gate) = Page::calc_target(x, y, travel_direction);
 
         if cells[target as usize].get_cell_type() == CellType::Empty {
-            Some((target, Page::create_change(cell_type, gate)))
+            Local((target, Page::create_change(cell_type, gate)))
         } else {
-            None
+            NoChange
         }
     }
 
@@ -277,6 +266,7 @@ impl Page {
 #[cfg(test)]
 mod test {
     use super::{Page, Cell, CellType, Gate, Chromosome};
+    use super::ChangeType::{Remote, Local, NoChange};
     use test::Bencher;
 
     #[test]
@@ -316,10 +306,14 @@ mod test {
         assert!(data[1].get_gate() == Gate::North);
 
         assert!(change.is_some() == true);
-        let (target, change) = change.unwrap();
-        assert!(change.get_cell_type() == CellType::Axon);
-        assert!(change.get_gate() == Gate::South); // Gate is opposite of the growth direction
-        assert!(target == 2);
+        match change {
+            Local((target, change)) => {
+                assert!(change.get_cell_type() == CellType::Axon);
+                assert!(change.get_gate() == Gate::South); // Gate is opposite of the growth direction
+                assert!(target == 2);
+            },
+            _ => assert!(1 == 2)
+        }
 
         let change = Page::grow_local(&mut data, 1, 0, CellType::Dendrite, Gate::West);
         assert!(data[0].get_cell_type() == CellType::Empty);
@@ -328,10 +322,15 @@ mod test {
         assert!(data[1].get_gate() == Gate::North);
 
         assert!(change.is_some() == true);
-        let (target, change) = change.unwrap();
-        assert!(change.get_cell_type() == CellType::Dendrite);
-        assert!(change.get_gate() == Gate::East);   // Gate is opposite of the growth direction
-        assert!(target == 0);
+        match change {
+            Local((target, change)) => {
+                assert!(change.get_cell_type() == CellType::Dendrite);
+                assert!(change.get_gate() == Gate::East); // Gate is opposite of the growth direction
+                assert!(target == 0);
+            },
+            _ => assert!(1 == 2)
+        }
+
     }
 
 
