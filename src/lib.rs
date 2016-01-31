@@ -67,25 +67,24 @@ impl Cajal {
 #[cfg(test)]
 mod tests {
     use super::Cajal;
-    use super::ReportMemory;
     use test::Bencher;
 
     #[test]
     fn default_params() {
-        let c = Cajal::default();
+        let _ = Cajal::default();
     }
 
     #[bench]
     fn bench_new_5x5(b: &mut Bencher) {
         b.iter(|| {
-            let cajal = Cajal::new(5, 0.05, &[1, 2, 3, 4]);
+            Cajal::new(5, 0.05, &[1, 2, 3, 4]);
         });
     }
 
     #[bench]
     fn bench_new_2x2(b: &mut Bencher) {
         b.iter(|| {
-            let cajal = Cajal::new(2, 0.05, &[1, 2, 3, 4]);
+            Cajal::new(2, 0.05, &[1, 2, 3, 4]);
         });
     }
 }

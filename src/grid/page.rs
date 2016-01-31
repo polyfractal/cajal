@@ -265,13 +265,13 @@ impl Page {
 
 #[cfg(test)]
 mod test {
-    use super::{Page, Cell, CellType, Gate, Chromosome};
-    use super::ChangeType::{Remote, Local, NoChange};
+    use super::{Page, Cell, CellType, Gate};
+    use super::ChangeType::{Local};
     use test::Bencher;
 
     #[test]
     fn page_new() {
-        let p = Page::new(0.05, 0, 0, &[1, 2, 3, 4]);
+        let _ = Page::new(0.05, 0, 0, &[1, 2, 3, 4]);
     }
 
     #[test]
@@ -338,14 +338,14 @@ mod test {
     #[should_panic]
     fn grow_local_bad_north() {
         let mut data = vec![Cell::new(), Cell::new()];
-        let change = Page::grow_local(&mut data, 0, 63, CellType::Axon, Gate::North);
+        let _ = Page::grow_local(&mut data, 0, 63, CellType::Axon, Gate::North);
     }
 
     #[test]
     #[should_panic]
     fn grow_local_bad_east() {
         let mut data = vec![Cell::new(), Cell::new()];
-        let change = Page::grow_local(&mut data, 63, 0, CellType::Axon, Gate::East);
+        let _ = Page::grow_local(&mut data, 63, 0, CellType::Axon, Gate::East);
     }
 
 

@@ -136,10 +136,9 @@ impl Default for Grid {
 #[cfg(test)]
 mod test {
     use super::{Grid};
-    use super::super::ReportMemory;
 
     #[test]
     fn grid_default_params() {
-        let g = Grid::default();
+        let _ = Grid::default();
     }
 }

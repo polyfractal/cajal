@@ -266,10 +266,10 @@ mod test {
         c.set_gate(Gate::West);
         assert!(c.get_gate() == Gate::West);
 
-        let mut c = Cell::new();
+        let c = Cell::new();
         assert!(c.get_gate() == Gate::North);
 
-        let mut c = Cell::new();
+        let c = Cell::new();
         assert!(c.get_gate() == Gate::North);
     }
 
