@@ -12,6 +12,9 @@ use time::{SteadyTime, Duration};
 
 
 pub const SQ_SIZE: u32 = 3;
+pub const PAGE_SIZE: u32 = 65536;
+pub const PAGE_WIDTH: u32 = 256;
+
 
 #[derive(Debug)]
 enum Mode {
@@ -25,7 +28,7 @@ fn main() {
     rayon::initialize(rayon::Configuration::new().set_num_threads(4));
 
     let num_pages = 2u32;
-    let dimension = num_pages * 64u32;
+    let dimension = num_pages * PAGE_WIDTH;
     let mut cajal = Cajal::new(num_pages, 0.001, &[1,2,3,7]);
 
     let window: PistonWindow =

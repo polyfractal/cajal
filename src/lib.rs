@@ -17,6 +17,9 @@ use grid::Grid;
 
 mod grid;
 
+pub const PAGE_SIZE: u32 = 65536;
+pub const PAGE_WIDTH: u32 = 256;
+
 trait ReportMemory {
     fn memory(&self) -> u32;
 }

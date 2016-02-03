@@ -6,7 +6,7 @@ use rand::{Rng, SeedableRng, StdRng};
 
 pub use super::cell::{Cell, Chromosome, CellType, Gate};
 use super::zorder;
-use super::super::ReportMemory;
+use super::super::{ReportMemory, PAGE_SIZE, PAGE_WIDTH};
 use self::ChangeType::{Remote, Local, NoChange};
 
 
@@ -91,11 +91,10 @@ impl Page {
         final_seed.extend(seed);
         let mut rng: StdRng = SeedableRng::from_seed(final_seed.as_slice());
 
-        let num_cells = 4096;
-        let mut cells: Vec<Cell> = Vec::with_capacity(num_cells);
+        let mut cells: Vec<Cell> = Vec::with_capacity(PAGE_SIZE as usize);
         let range_threshold = Range::new(0, 4);
 
-        for _ in 0..num_cells {
+        for _ in 0..PAGE_SIZE as usize {
             let mut cell = Cell::new();
             cell.set_chromosome(rng.gen());
             cell.set_gate(rng.gen());
@@ -106,10 +105,10 @@ impl Page {
         let mut bitmap: RoaringBitmap<u32> = RoaringBitmap::new();
 
         // TODO roll this into the initialization loop
-        let active_cells: u32 = (4096f32 * density).round() as u32;
+        let active_cells: u32 = (PAGE_SIZE as f32 * density).round() as u32;
         debug!("Active cells in this Page: {}", active_cells);
 
-        let range_cells = Range::new(1, 62);
+        let range_cells = Range::new(1, PAGE_WIDTH - 1);
 
         for _ in 0..active_cells {
             let (x, y) = (range_cells.ind_sample(&mut rng), range_cells.ind_sample(&mut rng));
@@ -218,9 +217,9 @@ impl Page {
                                 x: u32, y: u32, offset_x: u32, offset_y: u32, cell_type: CellType, stim: bool) -> ChangeType {
 
         match (travel_direction, x, y) {
-            (Gate::North, _, y) if y < 63 => Page::grow_local(cells, x, y, cell_type, travel_direction, stim),
+            (Gate::North, _, y) if y < PAGE_WIDTH - 1 => Page::grow_local(cells, x, y, cell_type, travel_direction, stim),
             (Gate::South, _, y) if y > 0  => Page::grow_local(cells, x, y, cell_type, travel_direction, stim),
-            (Gate::East, x, _) if x < 63  => Page::grow_local(cells, x, y, cell_type, travel_direction, stim),
+            (Gate::East, x, _) if x < PAGE_WIDTH - 1  => Page::grow_local(cells, x, y, cell_type, travel_direction, stim),
             (Gate::West, x, _) if x > 0   => Page::grow_local(cells, x, y, cell_type, travel_direction, stim),
             (_, _, _) =>  Page::create_remote_change(x, y, offset_x, offset_y, cell_type, travel_direction, stim)
         }
@@ -291,8 +290,8 @@ impl Page {
     // TODO use i64 instead, so we can check for accidental negatives?
     fn grow_local(cells: &mut Vec<Cell>, x: u32, y: u32,
             cell_type: CellType, travel_direction: Gate, stim: bool) -> ChangeType {
-        assert!((x > 63 && travel_direction == Gate::East) != true);
-        assert!((y > 63 && travel_direction == Gate::North) != true);
+        assert!((x > PAGE_WIDTH - 1 && travel_direction == Gate::East) != true);
+        assert!((y > PAGE_WIDTH - 1 && travel_direction == Gate::North) != true);
 
         let (target, gate) = Page::calc_target(x, y, travel_direction);
 
@@ -411,9 +410,9 @@ impl Page {
                         offset_x: u32, offset_y: u32) -> SignalType {
 
         match (travel_direction, x, y) {
-            (Gate::North, _, y) if y < 63 => Page::signal_local(cells, origin, x, y, travel_direction),
+            (Gate::North, _, y) if y < PAGE_WIDTH - 1 => Page::signal_local(cells, origin, x, y, travel_direction),
             (Gate::South, _, y) if y > 0  => Page::signal_local(cells, origin, x, y, travel_direction),
-            (Gate::East, x, _) if x < 63  => Page::signal_local(cells, origin, x, y, travel_direction),
+            (Gate::East, x, _) if x < PAGE_WIDTH - 1  => Page::signal_local(cells, origin, x, y, travel_direction),
             (Gate::West, x, _) if x > 0   => Page::signal_local(cells, origin, x, y, travel_direction),
             (_, _, _) =>  {
                 let strength = cells[origin].get_strength();
@@ -439,8 +438,8 @@ impl Page {
 
 
     fn signal_local(cells: &mut Vec<Cell>, origin: usize, x: u32, y: u32, travel_direction: Gate) -> SignalType {
-        assert!((x > 63 && travel_direction == Gate::East) != true);
-        assert!((y > 63 && travel_direction == Gate::North) != true);
+        assert!((x > PAGE_WIDTH - 1 && travel_direction == Gate::East) != true);
+        assert!((y > PAGE_WIDTH - 1 && travel_direction == Gate::North) != true);
 
         let (target, gate) = Page::calc_target(x, y, travel_direction);
 
