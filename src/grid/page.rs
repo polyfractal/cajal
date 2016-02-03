@@ -169,12 +169,12 @@ impl Page {
         }
     }
 
-    pub fn grow(&mut self) -> (u32, Option<Vec<RemoteChange>>) {
+    pub fn grow(&mut self) {
 
         debug!("Growing {} cells.", self.active.len());
         debug!("Changelist size: {}", self.changes.len());
         if self.active.is_empty() == true {
-            return (0, None);
+            return;
         }
 
         let mut cells = &mut self.cells;
@@ -196,8 +196,14 @@ impl Page {
 
         debug!("After growth: Changelist size: {}", self.changes.len());
 
-        // Return the number of newly activated cells
-        (self.changes.len() as u32, Some(self.remote_changes.clone()))
+    }
+
+    pub fn get_remote_changes(&self) -> &Vec<RemoteChange> {
+        &self.remote_changes
+    }
+
+    pub fn get_active_cell_count(&self) -> u32 {
+        self.changes.len() as u32
     }
 
     fn persist_change(local: &mut HashMap<u32, Cell>, remote: &mut Vec<RemoteChange>, change: ChangeType) {
@@ -338,11 +344,11 @@ impl Page {
         self.active.insert(z);
     }
 
-    pub fn signal(&mut self) -> Option<Vec<RemoteSignal>> {
+    pub fn signal(&mut self) {
 
         debug!("Processing signals for {} cells.", self.active.len());
         if self.active.is_empty() == true {
-            return None;
+            return;
         }
 
         for index in self.active.iter() {
@@ -395,7 +401,10 @@ impl Page {
 
         debug!("local_signal: {:?}", self.local_signal);
         debug!("remote_signal: {:?}", self.remote_signal);
-        Some(self.remote_signal.clone())
+    }
+
+    pub fn get_remote_signal(&self) -> &Vec<RemoteSignal> {
+        &self.remote_signal
     }
 
     fn process_signal(travel_direction: Gate, cells: &mut Vec<Cell>, origin: usize, x: u32, y: u32,

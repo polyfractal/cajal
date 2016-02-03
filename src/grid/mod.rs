@@ -61,27 +61,20 @@ impl Grid {
     pub fn grow_step(&mut self) -> u32 {
         debug!("Growing Pages...");
 
-        // TODO replace tuples with structs
-        let (active_cells, remote_changes) = self.pages.par_iter_mut()
-            .map(|page| page.grow())
-            .reduce_with(|a, b| {
-                let active_cells = a.0 + b.0;
-                let remote_changes = match (a.1, b.1) {
-                    (Some(a_r), Some(b_r)) => {
-                        let mut t = Vec::with_capacity(a_r.len() + b_r.len());
-                        t.extend(a_r);
-                        t.extend(b_r);
-                        Some(t)
-                    },
-                    (Some(a_r), None) => Some(a_r),
-                    (None, Some(b_r)) => Some(b_r),
-                    (None, None) => None
-                };
-                (active_cells, remote_changes)
-            }).unwrap();
+        self.pages.par_iter_mut()
+            .for_each(|page| page.grow());;
 
+        let active_cells = self.pages.iter()
+                            .map(|page| page.get_active_cell_count())
+                            .fold(0u32, |acc, x| acc + x);
 
-        if let Some(changes) = remote_changes {
+        for i in (0..self.pages.len()) {
+            let changes = self.pages[i].get_remote_changes().clone();
+
+            if changes.is_empty() {
+                continue;
+            }
+
             debug!("Remote changes to process: {}", changes.len());
 
             for c in changes {
@@ -97,7 +90,9 @@ impl Grid {
                 self.get_mut_page(c.x, c.y)
                     .add_change(c.x % 64, c.y % 64, c.cell, c.travel_direction, c.stim);
             }
+
         }
+
 
         debug!("Active cells after growth: {}", active_cells);
 
@@ -122,37 +117,30 @@ impl Grid {
         debug!("Processing signals...");
 
         let remote_signal = self.pages.par_iter_mut()
-            .map(|page| page.signal())
-            .reduce_with(|a, b| {
-                let remote_signal = match (a, b) {
-                    (Some(a_r), Some(b_r)) => {
-                        let mut t = Vec::with_capacity(a_r.len() + b_r.len());
-                        t.extend(a_r);
-                        t.extend(b_r);
-                        Some(t)
-                    },
-                    (Some(a_r), None) => Some(a_r),
-                    (None, Some(b_r)) => Some(b_r),
-                    (None, None) => None
-                };
-                remote_signal
-            }).unwrap();
+            .for_each(|page| page.signal());
 
-        if let Some(changes) = remote_signal {
-            debug!("Remote signal to process: {}", changes.len());
+        for i in 0..self.pages.len() {
 
-            for c in changes {
-                debug!("Absolute signal position: ({},{})", c.x, c.y);
-                if !(c.x > 0 && c.x < self.dimension && c.y > 0 && c.y < self.dimension ) {
-                    debug!("x > 1 {}", c.x > 0);
-                    debug!("x < dimension - 1{}", c.x < self.dimension);
-                    debug!("y > 1 {}", c.y > 0);
-                    debug!("y < dimension - 1 {}", c.y < self.dimension );
+            let signals = self.pages[i].get_remote_signal().clone();
+
+            if signals.is_empty() {
+                continue;
+            }
+
+            debug!("Remote signal to process: {}", signals.len());
+
+            for s in signals {
+                debug!("Absolute signal position: ({},{})", s.x, s.y);
+                if !(s.x > 0 && s.x < self.dimension && s.y > 0 && s.y < self.dimension ) {
+                    debug!("x > 1 {}", s.x > 0);
+                    debug!("x < dimension - 1{}", s.x < self.dimension);
+                    debug!("y > 1 {}", s.y > 0);
+                    debug!("y < dimension - 1 {}", s.y < self.dimension );
 
                     continue;
                 }
-                self.get_mut_page(c.x, c.y)
-                    .add_signal(c.x % 64, c.y % 64, c.strength, c.stim);
+                self.get_mut_page(s.x, s.y)
+                    .add_signal(s.x % 64, s.y % 64, s.strength, s.stim);
             }
         }
 
