@@ -60,7 +60,8 @@ impl Grid {
 
     pub fn grow_step(&mut self) -> u32 {
         debug!("Growing Pages...");
-        //.fold(0, |sum, x| sum + x);
+
+        // TODO replace tuples with structs
         let (active_cells, remote_changes) = self.pages.par_iter_mut()
             .map(|page| page.grow())
             .reduce_with(|a, b| {
@@ -94,7 +95,7 @@ impl Grid {
                     continue;
                 }
                 self.get_mut_page(c.x, c.y)
-                    .add_change(c.x % 64, c.y % 64, c.cell, c.travel_direction);
+                    .add_change(c.x % 64, c.y % 64, c.cell, c.travel_direction, c.stim);
             }
         }
 
@@ -105,6 +106,60 @@ impl Grid {
             .for_each(|page| page.update());
 
         active_cells
+    }
+
+    pub fn signal(&mut self) {
+        loop {
+            let active_cells = self.signal_step();
+
+            if active_cells == 0 {
+                break;
+            }
+        }
+    }
+
+    pub fn signal_step(&mut self) -> u32 {
+        debug!("Processing signals...");
+
+        let remote_signal = self.pages.par_iter_mut()
+            .map(|page| page.signal())
+            .reduce_with(|a, b| {
+                let remote_signal = match (a, b) {
+                    (Some(a_r), Some(b_r)) => {
+                        let mut t = Vec::with_capacity(a_r.len() + b_r.len());
+                        t.extend(a_r);
+                        t.extend(b_r);
+                        Some(t)
+                    },
+                    (Some(a_r), None) => Some(a_r),
+                    (None, Some(b_r)) => Some(b_r),
+                    (None, None) => None
+                };
+                remote_signal
+            }).unwrap();
+
+        if let Some(changes) = remote_signal {
+            debug!("Remote signal to process: {}", changes.len());
+
+            for c in changes {
+                debug!("Absolute signal position: ({},{})", c.x, c.y);
+                if !(c.x > 0 && c.x < self.dimension && c.y > 0 && c.y < self.dimension ) {
+                    debug!("x > 1 {}", c.x > 0);
+                    debug!("x < dimension - 1{}", c.x < self.dimension);
+                    debug!("y > 1 {}", c.y > 0);
+                    debug!("y < dimension - 1 {}", c.y < self.dimension );
+
+                    continue;
+                }
+                self.get_mut_page(c.x, c.y)
+                    .add_signal(c.x % 64, c.y % 64, c.strength, c.stim);
+            }
+        }
+
+        debug!("Updating Pages...");
+        self.pages.par_iter_mut()
+            .map(|page| page.update_signal())
+            .sum()
     }
 
 
@@ -122,6 +177,10 @@ impl Grid {
     fn get_mut_cell(&mut self, x: u32, y: u32) -> &mut Cell {
         let i = x / 64 + ((y / 64) * self.pages_per_side);
         self.pages[i as usize].get_mut_cell(x % 64, y % 64)
+    }
+
+    pub fn set_input(&mut self, x: u32, y: u32, sig: u8) {
+        self.get_mut_page(x, y).set_input(x % 64, y % 64, sig);
     }
 }
 

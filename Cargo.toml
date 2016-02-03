@@ -16,6 +16,7 @@ clippy = "*"
 
 [dependencies.rayon]
 git = "https://github.com/nikomatsakis/rayon"
+branch = "master"
 
 [[example]]
 name = "viz"

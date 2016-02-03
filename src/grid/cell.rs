@@ -11,11 +11,12 @@ const GATE_MASK: u32       = 0b0000000000_00_00_00_000000_0000_0_11_000;  // | G
 const STIM_MASK: u32       = 0b0000000000_00_00_00_000000_0000_1_00_000;  // |
 const CHROMO_MASK: u32     = 0b0000000000_00_00_00_000000_1111_0_00_000;  // ---
 
-const STRENGTH_MASK: u32   = 0b0000000000_00_00_00_000000_1111_0_00_000;  // --
-const THRESHOLD_MASK: u32  = 0b0000000000_00_00_00_111111_0000_0_00_000;  // | Signal Phase
-const POT_1_MASK: u32      = 0b0000000000_00_00_11_000000_0000_0_00_000;  // |
-const POT_2_MASK: u32      = 0b0000000000_00_11_00_000000_0000_0_00_000;  // |
-const POT_3_MASK: u32      = 0b0000000000_11_00_00_000000_0000_0_00_000;  // ---
+const STRENGTH_MASK: u32   = 0b0000_000000_00_00_00_000000_1111_0_00_000;  // ---
+const THRESHOLD_MASK: u32  = 0b0000_000000_00_00_00_111111_0000_0_00_000;  // | Signal Phase
+const POT_1_MASK: u32      = 0b0000_000000_00_00_11_000000_0000_0_00_000;  // |
+const POT_2_MASK: u32      = 0b0000_000000_00_11_00_000000_0000_0_00_000;  // |
+const POT_3_MASK: u32      = 0b0000_000000_11_00_00_000000_0000_0_00_000;  // |
+const SIGNAL_MASK: u32     = 0b0000_111111_00_00_00_000000_0000_0_00_000;  // ---
 
 const CELL_TYPE_OFFSET: u8  = 0;
 const GATE_OFFSET: u8       = 3;
@@ -27,7 +28,7 @@ const THRESHOLD_OFFSET: u8  = 10;
 const POT_1_OFFSET: u8      = 16;
 const POT_2_OFFSET: u8      = 18;
 const POT_3_OFFSET: u8      = 20;
-
+const SIGNAL_OFFSET: u8     = 22;
 
 enum_from_primitive! {
     #[derive(Debug, PartialEq, Copy, Clone)]
@@ -38,6 +39,20 @@ enum_from_primitive! {
         Dendrite = 0b011
     }
 }
+
+impl Not for CellType {
+    type Output = CellType;
+
+    fn not(self) -> CellType {
+        match self {
+           CellType::Body => CellType::Empty,
+           CellType::Empty => CellType::Body,
+           CellType::Axon => CellType::Dendrite,
+           CellType::Dendrite => CellType::Axon,
+        }
+    }
+}
+
 
 enum_from_primitive! {
     #[derive(Debug, PartialEq, Copy, Clone)]
@@ -110,6 +125,40 @@ enum_from_primitive! {
 
         All = 0b1111
 
+    }
+}
+
+impl Chromosome {
+    pub fn contains(&self, other: Chromosome) -> bool {
+        match other {
+            // Block is special since it can't co-exist with other flags
+            Chromosome::Block => *self == Chromosome::Block,
+            _ => (*self & other) == other
+        }
+    }
+
+    pub fn invert(&self) -> Chromosome {
+        match *self {
+            Chromosome::Block => Chromosome::All,
+            Chromosome::North => Chromosome::WestSouthEast,
+            Chromosome::West => Chromosome::NorthEastSouth,
+            Chromosome::South => Chromosome::NorthWestEast,
+            Chromosome::East => Chromosome::NorthWestSouth,
+
+            Chromosome::NorthWest  => Chromosome::SouthEast,
+            Chromosome::NorthSouth => Chromosome::WestEast,
+            Chromosome::NorthEast  => Chromosome::WestSouth,
+            Chromosome::WestSouth  => Chromosome::NorthEast,
+            Chromosome::WestEast   => Chromosome::NorthSouth,
+            Chromosome::SouthEast  => Chromosome::NorthWest,
+
+            Chromosome::NorthWestSouth  => Chromosome::East,
+            Chromosome::NorthEastSouth  => Chromosome::West,
+            Chromosome::NorthWestEast   => Chromosome::South,
+            Chromosome::WestSouthEast   => Chromosome::North,
+
+            Chromosome::All => Chromosome::Block
+        }
     }
 }
 
@@ -248,12 +297,8 @@ impl Cell {
         }
     }
 
-    pub fn chromosome_contains(&self, other: Chromosome) -> bool {
-        match other {
-            // Block is special since it can't co-exist with other flags
-            Chromosome::Block => self.get_chromosome() == Chromosome::Block,
-            _ => (self.get_chromosome() & other) == other
-        }
+    pub fn get_strength(&self) -> u8 {
+        ((self.data & STRENGTH_MASK) >> STRENGTH_OFFSET) as u8
     }
 
     pub fn set_threshold(&mut self, threshold: u8) {
@@ -265,6 +310,57 @@ impl Cell {
 
     pub fn get_threshold(&self) -> u8 {
         ((self.data & THRESHOLD_MASK) >> THRESHOLD_OFFSET) as u8
+    }
+
+    pub fn get_signal(&self) -> u8 {
+        ((self.data & SIGNAL_MASK) >> SIGNAL_OFFSET) as u8
+    }
+
+    //#[allow(exceeding_bitshifts)]
+    pub fn set_signal(&mut self, signal: u8) {
+        self.data = match signal {
+            0...63 => (self.data & !SIGNAL_MASK) | ((signal as u32) << SIGNAL_OFFSET),
+            _ => (self.data & !SIGNAL_MASK) | (63 << SIGNAL_OFFSET)
+        }
+    }
+
+    #[allow(exceeding_bitshifts)]
+    pub fn add_signal(&mut self, signal: u8) {
+        let mut sig = self.get_signal() + signal;
+        if sig > 63 {
+            sig = 63;
+        }
+
+        debug!("Adding signal {} to {} => {}", signal, self.get_signal(), sig);
+
+        self.data = (self.data & !SIGNAL_MASK) | ((sig as u32) << SIGNAL_OFFSET);
+    }
+
+    #[allow(exceeding_bitshifts)]
+    pub fn sub_signal(&mut self, signal: u8) {
+        let mut sig: i32 = self.get_signal() as i32 - signal as i32;
+        if sig < 0 {
+            sig = 0;
+        }
+
+        debug!("Subtracting signal {} from {} => {}", signal, self.get_signal(), sig);
+        self.data = (self.data & !SIGNAL_MASK) | ((sig as u32) << SIGNAL_OFFSET);
+    }
+
+    pub fn clear_signal(&mut self) {
+        self.data = (self.data & !SIGNAL_MASK) | (0 << SIGNAL_OFFSET);
+    }
+
+    pub fn get_stim(&self) -> bool {
+        match (self.data & STIM_MASK) >> STIM_OFFSET {
+            1 => true,
+            0 => false,
+            _ => unreachable!()
+        }
+    }
+
+    pub fn set_stim(&mut self, stim: bool) {
+        self.data = (self.data & !STIM_MASK) | ((stim as u32) << STIM_OFFSET);
     }
 }
 
@@ -338,15 +434,15 @@ mod test {
     fn chromo_contains() {
         let mut c = Cell::new();
         assert!(c.get_chromosome() == Chromosome::Block);
-        assert!(c.chromosome_contains(Chromosome::Block));
-        assert!(!c.chromosome_contains(Chromosome::North));
+        assert!(c.get_chromosome().contains(Chromosome::Block));
+        assert!(!c.get_chromosome().contains(Chromosome::North));
 
         c.set_chromosome(Chromosome::NorthSouth);
         assert!(c.get_chromosome() == Chromosome::NorthSouth);
-        assert!(!c.chromosome_contains(Chromosome::Block));
-        assert!(c.chromosome_contains(Chromosome::North));
-        assert!(c.chromosome_contains(Chromosome::South));
-        assert!(c.chromosome_contains(Chromosome::NorthSouth));
+        assert!(!c.get_chromosome().contains(Chromosome::Block));
+        assert!(c.get_chromosome().contains(Chromosome::North));
+        assert!(c.get_chromosome().contains(Chromosome::South));
+        assert!(c.get_chromosome().contains(Chromosome::NorthSouth));
     }
 
     #[test]
@@ -360,6 +456,43 @@ mod test {
         // overflow
         c.set_threshold(90);
         assert!(c.get_threshold() == 63u8);
+    }
+
+    #[test]
+    fn add_signal() {
+        let mut c = Cell::new();
+        assert!(c.get_signal() == 0u8);
+
+        c.set_signal(16);
+        assert!(c.get_signal() == 16u8);
+
+        // overflow
+        c.set_signal(90);
+        assert!(c.get_signal() == 63u8);
+
+        c.set_signal(0);
+        assert!(c.get_signal() == 0u8);
+
+        c.add_signal(10);
+        assert!(c.get_signal() == 10u8);
+
+        c.add_signal(2);
+        assert!(c.get_signal() == 12u8);
+
+        c.sub_signal(10);
+        assert!(c.get_signal() == 2u8);
+
+        c.sub_signal(2);
+        assert!(c.get_signal() == 0u8);
+
+        //underflow
+        c.sub_signal(10);
+        assert!(c.get_signal() == 0u8);
+
+        //overflow
+        c.add_signal(100);
+        assert!(c.get_signal() == 63u8);
+
     }
 
 }

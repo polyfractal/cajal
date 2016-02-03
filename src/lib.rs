@@ -51,12 +51,24 @@ impl Cajal {
         self.grid.grow();
     }
 
-    pub fn grow_step(&mut self) {
-        self.grid.grow_step();
+    pub fn grow_step(&mut self) -> u32 {
+        self.grid.grow_step()
     }
 
     pub fn get_cell(&self, x: u32, y: u32) -> &Cell {
         self.grid.get_cell(x, y)
+    }
+
+    pub fn signal(&mut self) {
+        self.grid.signal();
+    }
+
+    pub fn signal_step(&mut self)  -> u32 {
+        self.grid.signal_step()
+    }
+
+    pub fn set_input(&mut self, x: u32, y: u32, sig: u8) {
+        self.grid.set_input(x, y, sig);
     }
 }
 

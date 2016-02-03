@@ -12,4 +12,4 @@ appenders = ["stdout"]
 
 [[logger]]
 name = "cajal"
-level = "debug"
+level = "warn"
