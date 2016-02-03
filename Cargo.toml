@@ -3,6 +3,8 @@ name = "cajal"
 version = "0.1.0"
 authors = ["Zachary Tong <zacharyjtong@gmail.com>"]
 
+[profile.release]
+debug = true
 
 [dependencies]
 roaring = "0.4.0"
@@ -17,6 +19,10 @@ clippy = "*"
 [dependencies.rayon]
 git = "https://github.com/nikomatsakis/rayon"
 branch = "master"
+
+[[example]]
+name = "bench_grow"
+path = "examples/bench_grow/main.rs"
 
 [[example]]
 name = "viz"
