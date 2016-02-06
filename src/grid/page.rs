@@ -595,11 +595,11 @@ mod test {
 
     #[test]
     fn create_change() {
-        let change = Page::create_change(CellType::Axon, Gate::North);
+        let change = Page::create_change(CellType::Axon, Gate::North, true);
         assert!(change.get_cell_type() == CellType::Axon);
         assert!(change.get_gate() == Gate::North);
 
-        let change = Page::create_change(CellType::Dendrite, Gate::West);
+        let change = Page::create_change(CellType::Dendrite, Gate::West, true);
         assert!(change.get_cell_type() == CellType::Dendrite);
         assert!(change.get_gate() == Gate::West);
     }
@@ -612,7 +612,7 @@ mod test {
         assert!(data[1].get_cell_type() == CellType::Empty);
         assert!(data[1].get_gate() == Gate::North);
 
-        let change = Page::grow_local(&mut data, 0, 0, CellType::Axon, Gate::North);
+        let change = Page::grow_local(&mut data, 0, 0, CellType::Axon, Gate::North, true);
         assert!(data[0].get_cell_type() == CellType::Empty);
         assert!(data[0].get_gate() == Gate::North);
         assert!(data[1].get_cell_type() == CellType::Empty);
@@ -628,7 +628,7 @@ mod test {
             _ => assert!(1 == 2)
         }
 
-        let change = Page::grow_local(&mut data, 1, 0, CellType::Dendrite, Gate::West);
+        let change = Page::grow_local(&mut data, 1, 0, CellType::Dendrite, Gate::West, true);
         assert!(data[0].get_cell_type() == CellType::Empty);
         assert!(data[0].get_gate() == Gate::North);
         assert!(data[1].get_cell_type() == CellType::Empty);
@@ -651,14 +651,14 @@ mod test {
     #[should_panic]
     fn grow_local_bad_north() {
         let mut data = vec![Cell::new(), Cell::new()];
-        let _ = Page::grow_local(&mut data, 0, 63, CellType::Axon, Gate::North);
+        let _ = Page::grow_local(&mut data, 0, 63, CellType::Axon, Gate::North, true);
     }
 
     #[test]
     #[should_panic]
     fn grow_local_bad_east() {
         let mut data = vec![Cell::new(), Cell::new()];
-        let _ = Page::grow_local(&mut data, 63, 0, CellType::Axon, Gate::East);
+        let _ = Page::grow_local(&mut data, 63, 0, CellType::Axon, Gate::East, true);
     }
 
 
