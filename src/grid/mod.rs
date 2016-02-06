@@ -62,6 +62,7 @@ impl Grid {
         debug!("Growing Pages...");
 
         self.pages.par_iter_mut()
+            .weight_max()
             .for_each(|page| page.grow());;
 
         let active_cells = self.pages.iter()
@@ -98,6 +99,7 @@ impl Grid {
 
         debug!("Updating Pages...");
         self.pages.par_iter_mut()
+            .weight_max()
             .for_each(|page| page.update());
 
         active_cells
@@ -117,6 +119,7 @@ impl Grid {
         debug!("Processing signals...");
 
         let remote_signal = self.pages.par_iter_mut()
+            .weight_max()
             .for_each(|page| page.signal());
 
         for i in 0..self.pages.len() {
@@ -146,6 +149,7 @@ impl Grid {
 
         debug!("Updating Pages...");
         self.pages.par_iter_mut()
+            .weight_max()
             .map(|page| page.update_signal())
             .sum()
     }
