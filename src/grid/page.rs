@@ -441,7 +441,7 @@ impl Page {
         assert!((x > PAGE_WIDTH - 1 && travel_direction == Gate::East) != true);
         assert!((y > PAGE_WIDTH - 1 && travel_direction == Gate::North) != true);
 
-        let (target, gate) = Page::calc_target(x, y, travel_direction);
+        let (target, _) = Page::calc_target(x, y, travel_direction);
 
         if cells[target as usize].get_cell_type() != CellType::Empty {
             SignalType::Local(LocalSignal {
@@ -503,7 +503,7 @@ impl Page {
         }
 
         debug!("Local signals to process: {}", self.local_signal.len());
-        for signal in self.local_signal.iter() {
+        for signal in &self.local_signal {
 
 
             match (signal.origin_cell_type, self.cells[signal.to_index].get_cell_type()) {

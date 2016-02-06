@@ -69,7 +69,7 @@ impl Grid {
                             .map(|page| page.get_active_cell_count())
                             .fold(0u32, |acc, x| acc + x);
 
-        for i in (0..self.pages.len()) {
+        for i in 0..self.pages.len() {
             let changes = self.pages[i].get_remote_changes().clone();
 
             if changes.is_empty() {
@@ -118,7 +118,7 @@ impl Grid {
     pub fn signal_step(&mut self) -> u32 {
         debug!("Processing signals...");
 
-        let remote_signal = self.pages.par_iter_mut()
+        self.pages.par_iter_mut()
             .weight_max()
             .for_each(|page| page.signal());
 

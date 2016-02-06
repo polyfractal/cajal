@@ -25,7 +25,7 @@ enum Mode {
 fn main() {
     log4rs::init_file("examples/viz/log.toml", Default::default()).unwrap();
 
-    rayon::initialize(rayon::Configuration::new().set_num_threads(4));
+    let _ = rayon::initialize(rayon::Configuration::new().set_num_threads(4));
 
     let num_pages = 2u32;
     let dimension = num_pages * PAGE_WIDTH;
@@ -36,7 +36,6 @@ fn main() {
         .exit_on_esc(true).build().unwrap();
 
     let first = SteadyTime::now();
-    let mut last = SteadyTime::now();
     let mut mode = Mode::Grow;
     let mut counter = 0;
 
