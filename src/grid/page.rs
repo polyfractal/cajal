@@ -119,15 +119,15 @@ impl Page {
             cells[index as usize].set_stim(stim);
 
             let axon_direction: Gate = cells[index as usize].get_gate();
-            let secondary_axon = match axon_direction {
+            let dendrite_direction = match axon_direction {
                 Gate::North => Gate::West,
                 Gate::West => Gate::South,
                 Gate::South => Gate::East,
                 Gate::East => Gate::North,
             };
 
-            let dendrite_direction = !axon_direction;
-            let secondary_dendrite = !secondary_axon;
+            let secondary_axon = !axon_direction;
+            let secondary_dendrite = !dendrite_direction;
 
             if let Local((target, change)) = Page::grow_local(&mut cells, x, y, CellType::Axon, axon_direction, stim) {
                 cells[target as usize].set_cell_type(change.get_cell_type());
