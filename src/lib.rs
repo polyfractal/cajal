@@ -4,8 +4,10 @@
 #![feature(test)]
 extern crate test;
 
-#[macro_use] extern crate enum_primitive;
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate enum_primitive;
+#[macro_use]
+extern crate log;
 
 extern crate num;
 extern crate roaring;
@@ -15,7 +17,7 @@ extern crate rand;
 pub use grid::{Cell, CellType};
 use grid::Grid;
 
-mod grid;
+ mod grid;
 
 pub const PAGE_SIZE: u32 = 65536;
 pub const PAGE_WIDTH: u32 = 256;
@@ -26,14 +28,12 @@ trait ReportMemory {
 
 
 pub struct Cajal {
-    grid: Grid
+    grid: Grid,
 }
 
 impl Default for Cajal {
     fn default() -> Cajal {
-        Cajal {
-            grid: Grid::default()
-        }
+        Cajal { grid: Grid::default() }
     }
 }
 
@@ -45,9 +45,7 @@ impl ReportMemory for Cajal {
 
 impl Cajal {
     pub fn new(size: u32, density: f32, seed: &[usize]) -> Cajal {
-        Cajal {
-            grid: Grid::new(size, density, seed)
-        }
+        Cajal { grid: Grid::new(size, density, seed) }
     }
 
     pub fn grow(&mut self) {
@@ -66,7 +64,7 @@ impl Cajal {
         self.grid.signal();
     }
 
-    pub fn signal_step(&mut self)  -> u32 {
+    pub fn signal_step(&mut self) -> u32 {
         self.grid.signal_step()
     }
 

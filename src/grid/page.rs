@@ -9,7 +9,6 @@ use super::zorder;
 use super::super::{ReportMemory, PAGE_SIZE, PAGE_WIDTH};
 use self::ChangeType::{Remote, Local, NoChange};
 
-
 static CARDINAL_DIRECTIONS: &'static [Gate] = &[Gate::North, Gate::South, Gate::East, Gate::West];
 
 pub struct Page {
@@ -20,7 +19,7 @@ pub struct Page {
     local_signal: Vec<LocalSignal>,
     remote_signal: Vec<RemoteSignal>,
     offset_x: u32,
-    offset_y: u32
+    offset_y: u32,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -29,20 +28,20 @@ pub struct RemoteChange {
     pub y: u32,
     pub cell: Cell,
     pub travel_direction: Gate,
-    pub stim: bool
+    pub stim: bool,
 }
 
 enum ChangeType {
     Local((u32, Cell)),
     Remote(RemoteChange),
-    NoChange
+    NoChange,
 }
 
 impl ChangeType {
     pub fn is_some(&self) -> bool {
         match *self {
             NoChange => false,
-            _ => true
+            _ => true,
         }
     }
 }
@@ -51,7 +50,7 @@ impl ChangeType {
 enum SignalType {
     Local(LocalSignal),
     Remote(RemoteSignal),
-    NoSignal
+    NoSignal,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -60,7 +59,7 @@ pub struct RemoteSignal {
     pub y: u32,
     pub strength: u8,
     pub stim: bool,
-    pub origin_cell_type: CellType
+    pub origin_cell_type: CellType,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -70,7 +69,7 @@ pub struct LocalSignal {
     pub to_index: usize,
     pub strength: u8,
     pub stim: bool,
-    pub origin_cell_type: CellType
+    pub origin_cell_type: CellType,
 }
 
 
@@ -86,7 +85,7 @@ impl ReportMemory for Page {
 impl Page {
     pub fn new(density: f32, offset_x: u32, offset_y: u32, seed: &[usize]) -> Page {
         debug!("Creating new Page with {} density.", density);
-        //let mut rng = thread_rng();
+        // let mut rng = thread_rng();
         let mut final_seed = vec![offset_x as usize, offset_y as usize];
         final_seed.extend(seed);
         let mut rng: StdRng = SeedableRng::from_seed(final_seed.as_slice());
@@ -111,7 +110,8 @@ impl Page {
         let range_cells = Range::new(1, PAGE_WIDTH - 1);
 
         for _ in 0..active_cells {
-            let (x, y) = (range_cells.ind_sample(&mut rng), range_cells.ind_sample(&mut rng));
+            let (x, y) = (range_cells.ind_sample(&mut rng),
+                          range_cells.ind_sample(&mut rng));
             let index = zorder::xy_to_z(x, y);
 
             cells[index as usize].set_cell_type(CellType::Body);
@@ -129,26 +129,46 @@ impl Page {
             let secondary_axon = !axon_direction;
             let secondary_dendrite = !dendrite_direction;
 
-            if let Local((target, change)) = Page::grow_local(&mut cells, x, y, CellType::Axon, axon_direction, stim) {
+            if let Local((target, change)) = Page::grow_local(&mut cells,
+                                                              x,
+                                                              y,
+                                                              CellType::Axon,
+                                                              axon_direction,
+                                                              stim) {
                 cells[target as usize].set_cell_type(change.get_cell_type());
                 cells[target as usize].set_gate(change.get_gate());
                 cells[target as usize].set_stim(stim);
                 bitmap.insert(target);
             }
-            if let Local((target, change)) = Page::grow_local(&mut cells, x, y, CellType::Axon, secondary_axon, stim) {
+            if let Local((target, change)) = Page::grow_local(&mut cells,
+                                                              x,
+                                                              y,
+                                                              CellType::Axon,
+                                                              secondary_axon,
+                                                              stim) {
                 cells[target as usize].set_cell_type(change.get_cell_type());
                 cells[target as usize].set_gate(change.get_gate());
                 cells[target as usize].set_stim(stim);
                 bitmap.insert(target);
             }
 
-            if let Local((target, change)) = Page::grow_local(&mut cells, x, y, CellType::Dendrite, dendrite_direction, false) {
+            if let Local((target, change)) = Page::grow_local(&mut cells,
+                                                              x,
+                                                              y,
+                                                              CellType::Dendrite,
+                                                              dendrite_direction,
+                                                              false) {
                 cells[target as usize].set_cell_type(change.get_cell_type());
                 cells[target as usize].set_gate(change.get_gate());
                 cells[target as usize].set_stim(false);
                 bitmap.insert(target);
             }
-            if let Local((target, change)) = Page::grow_local(&mut cells, x, y, CellType::Dendrite, secondary_dendrite, false) {
+            if let Local((target, change)) = Page::grow_local(&mut cells,
+                                                              x,
+                                                              y,
+                                                              CellType::Dendrite,
+                                                              secondary_dendrite,
+                                                              false) {
                 cells[target as usize].set_cell_type(change.get_cell_type());
                 cells[target as usize].set_gate(change.get_gate());
                 cells[target as usize].set_stim(false);
@@ -164,7 +184,7 @@ impl Page {
             offset_y: offset_y,
             remote_changes: Vec::with_capacity(32),
             remote_signal: Vec::with_capacity(32),
-            local_signal: Vec::with_capacity(32)
+            local_signal: Vec::with_capacity(32),
         }
     }
 
@@ -185,12 +205,22 @@ impl Page {
 
             for direction in CARDINAL_DIRECTIONS {
                 if cells[index as usize].get_chromosome().contains(Chromosome::from(*direction)) {
-                    let change = Page::process_chromosome_direction(*direction, &mut cells, x, y,
-                                    self.offset_x, self.offset_y, cell_type, stim);
+                    let change = Page::process_chromosome_direction(*direction,
+                                                                    &mut cells,
+                                                                    x,
+                                                                    y,
+                                                                    self.offset_x,
+                                                                    self.offset_y,
+                                                                    cell_type,
+                                                                    stim);
 
                     match change {
-                        ChangeType::Local((target, change)) => {self.changes.insert(target, change);},
-                        ChangeType::Remote(change) => {self.remote_changes.push(change);},
+                        ChangeType::Local((target, change)) => {
+                            self.changes.insert(target, change);
+                        }
+                        ChangeType::Remote(change) => {
+                            self.remote_changes.push(change);
+                        }
                         ChangeType::NoChange => {}
                     }
                 }
@@ -209,15 +239,38 @@ impl Page {
         self.changes.len() as u32
     }
 
-    fn process_chromosome_direction(travel_direction: Gate, cells: &mut Vec<Cell>,
-                                x: u32, y: u32, offset_x: u32, offset_y: u32, cell_type: CellType, stim: bool) -> ChangeType {
+    fn process_chromosome_direction(travel_direction: Gate,
+                                    cells: &mut Vec<Cell>,
+                                    x: u32,
+                                    y: u32,
+                                    offset_x: u32,
+                                    offset_y: u32,
+                                    cell_type: CellType,
+                                    stim: bool)
+                                    -> ChangeType {
 
         match (travel_direction, x, y) {
-            (Gate::North, _, y) if y < PAGE_WIDTH - 1 => Page::grow_local(cells, x, y, cell_type, travel_direction, stim),
-            (Gate::South, _, y) if y > 0  => Page::grow_local(cells, x, y, cell_type, travel_direction, stim),
-            (Gate::East, x, _) if x < PAGE_WIDTH - 1  => Page::grow_local(cells, x, y, cell_type, travel_direction, stim),
-            (Gate::West, x, _) if x > 0   => Page::grow_local(cells, x, y, cell_type, travel_direction, stim),
-            (_, _, _) =>  Page::create_remote_change(x, y, offset_x, offset_y, cell_type, travel_direction, stim)
+            (Gate::North, _, y) if y < PAGE_WIDTH - 1 => {
+                Page::grow_local(cells, x, y, cell_type, travel_direction, stim)
+            }
+            (Gate::South, _, y) if y > 0 => {
+                Page::grow_local(cells, x, y, cell_type, travel_direction, stim)
+            }
+            (Gate::East, x, _) if x < PAGE_WIDTH - 1 => {
+                Page::grow_local(cells, x, y, cell_type, travel_direction, stim)
+            }
+            (Gate::West, x, _) if x > 0 => {
+                Page::grow_local(cells, x, y, cell_type, travel_direction, stim)
+            }
+            (_, _, _) => {
+                Page::create_remote_change(x,
+                                           y,
+                                           offset_x,
+                                           offset_y,
+                                           cell_type,
+                                           travel_direction,
+                                           stim)
+            }
         }
     }
 
@@ -254,38 +307,59 @@ impl Page {
         let target = zorder::xy_to_z(x, y);
         if self.cells[target as usize].get_cell_type() == CellType::Empty {
             debug!("Inserting external change.");
-            self.changes.insert(target, Page::create_change(cell_type, !travel_direction, stim));
+            self.changes.insert(target,
+                                Page::create_change(cell_type, !travel_direction, stim));
         }
     }
 
-    fn create_remote_change(x: u32, y: u32, offset_x: u32, offset_y: u32,
-                            cell_type: CellType, travel_direction: Gate, stim: bool) -> ChangeType {
-        debug!("create_remote_change: ({},{}) offsets: ({},{}) {:?}", x, y, offset_x, offset_y, travel_direction);
+    fn create_remote_change(x: u32,
+                            y: u32,
+                            offset_x: u32,
+                            offset_y: u32,
+                            cell_type: CellType,
+                            travel_direction: Gate,
+                            stim: bool)
+                            -> ChangeType {
+        debug!("create_remote_change: ({},{}) offsets: ({},{}) {:?}",
+               x,
+               y,
+               offset_x,
+               offset_y,
+               travel_direction);
 
-        if (offset_x == 0 && travel_direction == Gate::West) || (offset_y == 0 && travel_direction == Gate::South) {
+        if (offset_x == 0 && travel_direction == Gate::West) ||
+           (offset_y == 0 && travel_direction == Gate::South) {
             return NoChange;
         }
 
         let (x, y) = match travel_direction {
-            Gate::North => (offset_x + x,     offset_y + y + 1),
-            Gate::South => (offset_x + x,     offset_y + y - 1),
-            Gate::West  => (offset_x + x - 1, offset_y + y),
-            Gate::East  => (offset_x + x + 1, offset_y + y),
+            Gate::North => (offset_x + x, offset_y + y + 1),
+            Gate::South => (offset_x + x, offset_y + y - 1),
+            Gate::West => (offset_x + x - 1, offset_y + y),
+            Gate::East => (offset_x + x + 1, offset_y + y),
         };
-        debug!("create_remote_change: new: ({},{}) {:?}", x, y, travel_direction);
+        debug!("create_remote_change: new: ({},{}) {:?}",
+               x,
+               y,
+               travel_direction);
 
         Remote(RemoteChange {
             x: x,
             y: y,
             cell: Page::create_change(cell_type, !travel_direction, stim),
             travel_direction: travel_direction,
-            stim: stim
+            stim: stim,
         })
     }
 
     // TODO use i64 instead, so we can check for accidental negatives?
-    fn grow_local(cells: &mut Vec<Cell>, x: u32, y: u32,
-            cell_type: CellType, travel_direction: Gate, stim: bool) -> ChangeType {
+    fn grow_local(cells: &mut Vec<Cell>,
+                  x: u32,
+                  y: u32,
+                  cell_type: CellType,
+                  travel_direction: Gate,
+                  stim: bool)
+                  -> ChangeType {
         assert!((x > PAGE_WIDTH - 1 && travel_direction == Gate::East) != true);
         assert!((y > PAGE_WIDTH - 1 && travel_direction == Gate::North) != true);
 
@@ -330,7 +404,7 @@ impl Page {
 
 
 
-    //---------------------------------
+    // ---------------------------------
 
     pub fn set_input(&mut self, x: u32, y: u32, sig: u8) {
         debug!("Adding artificial signal to ({}, {}) @ {}", x, y, sig);
@@ -369,27 +443,39 @@ impl Page {
                         if targets.contains(Chromosome::from(*direction)) {
                             debug!("Target contains {:?}", direction);
 
-                            let sig = Page::process_signal(*direction, &mut self.cells, index as usize, x, y,
-                                            self.offset_x, self.offset_y);
+                            let sig = Page::process_signal(*direction,
+                                                           &mut self.cells,
+                                                           index as usize,
+                                                           x,
+                                                           y,
+                                                           self.offset_x,
+                                                           self.offset_y);
 
-                            Page::persist_signal(&mut self.local_signal, &mut self.remote_signal, sig);
+                            Page::persist_signal(&mut self.local_signal,
+                                                 &mut self.remote_signal,
+                                                 sig);
                         }
                     }
-                },
+                }
                 CellType::Dendrite | CellType::Body => {
                     debug!("Signal landed on Dendrite / Body");
 
                     let target = self.cells[index as usize].get_gate();
                     debug!("Signal >= threshold, send to: {:?}", target);
 
-                    let sig = Page::process_signal(target, &mut self.cells, index as usize, x, y,
-                                    self.offset_x, self.offset_y);
+                    let sig = Page::process_signal(target,
+                                                   &mut self.cells,
+                                                   index as usize,
+                                                   x,
+                                                   y,
+                                                   self.offset_x,
+                                                   self.offset_y);
 
-                    //debug!("Propagated signal: {:?}", sig);
+                    // debug!("Propagated signal: {:?}", sig);
 
                     Page::persist_signal(&mut self.local_signal, &mut self.remote_signal, sig);
 
-                },
+                }
                 _ => {}
             };
         }
@@ -402,38 +488,66 @@ impl Page {
         &self.remote_signal
     }
 
-    fn process_signal(travel_direction: Gate, cells: &mut Vec<Cell>, origin: usize, x: u32, y: u32,
-                        offset_x: u32, offset_y: u32) -> SignalType {
+    fn process_signal(travel_direction: Gate,
+                      cells: &mut Vec<Cell>,
+                      origin: usize,
+                      x: u32,
+                      y: u32,
+                      offset_x: u32,
+                      offset_y: u32)
+                      -> SignalType {
 
         match (travel_direction, x, y) {
-            (Gate::North, _, y) if y < PAGE_WIDTH - 1 => Page::signal_local(cells, origin, x, y, travel_direction),
-            (Gate::South, _, y) if y > 0  => Page::signal_local(cells, origin, x, y, travel_direction),
-            (Gate::East, x, _) if x < PAGE_WIDTH - 1  => Page::signal_local(cells, origin, x, y, travel_direction),
-            (Gate::West, x, _) if x > 0   => Page::signal_local(cells, origin, x, y, travel_direction),
-            (_, _, _) =>  {
+            (Gate::North, _, y) if y < PAGE_WIDTH - 1 => {
+                Page::signal_local(cells, origin, x, y, travel_direction)
+            }
+            (Gate::South, _, y) if y > 0 => {
+                Page::signal_local(cells, origin, x, y, travel_direction)
+            }
+            (Gate::East, x, _) if x < PAGE_WIDTH - 1 => {
+                Page::signal_local(cells, origin, x, y, travel_direction)
+            }
+            (Gate::West, x, _) if x > 0 => {
+                Page::signal_local(cells, origin, x, y, travel_direction)
+            }
+            (_, _, _) => {
                 let strength = cells[origin].get_strength();
                 let stim = cells[origin].get_stim();
                 let cell_type = cells[origin].get_cell_type();
-                Page::signal_remote(strength, stim, x, y, offset_x, offset_y, travel_direction, cell_type)
+                Page::signal_remote(strength,
+                                    stim,
+                                    x,
+                                    y,
+                                    offset_x,
+                                    offset_y,
+                                    travel_direction,
+                                    cell_type)
             }
         }
     }
 
 
-    fn persist_signal(local: &mut Vec<LocalSignal>, remote: &mut Vec<RemoteSignal>, change: SignalType) {
+    fn persist_signal(local: &mut Vec<LocalSignal>,
+                      remote: &mut Vec<RemoteSignal>,
+                      change: SignalType) {
         match change {
             SignalType::Local(l) => {
                 local.push(l);
-            },
+            }
             SignalType::Remote(r) => {
                 remote.push(r);
-            },
+            }
             SignalType::NoSignal => {}
         }
     }
 
 
-    fn signal_local(cells: &mut Vec<Cell>, origin: usize, x: u32, y: u32, travel_direction: Gate) -> SignalType {
+    fn signal_local(cells: &mut Vec<Cell>,
+                    origin: usize,
+                    x: u32,
+                    y: u32,
+                    travel_direction: Gate)
+                    -> SignalType {
         assert!((x > PAGE_WIDTH - 1 && travel_direction == Gate::East) != true);
         assert!((y > PAGE_WIDTH - 1 && travel_direction == Gate::North) != true);
 
@@ -446,26 +560,39 @@ impl Page {
                 to_index: target as usize,
                 strength: cells[origin].get_strength(),
                 stim: cells[origin].get_stim(),
-                origin_cell_type: cells[origin].get_cell_type()
+                origin_cell_type: cells[origin].get_cell_type(),
             })
         } else {
             SignalType::NoSignal
         }
     }
 
-    fn signal_remote(strength: u8, stim: bool, x: u32, y: u32,
-                offset_x: u32, offset_y: u32, travel_direction: Gate, cell_type: CellType) -> SignalType {
-        debug!("signal_remote: ({},{}) offsets: ({},{}) {:?}", x, y, offset_x, offset_y, travel_direction);
+    fn signal_remote(strength: u8,
+                     stim: bool,
+                     x: u32,
+                     y: u32,
+                     offset_x: u32,
+                     offset_y: u32,
+                     travel_direction: Gate,
+                     cell_type: CellType)
+                     -> SignalType {
+        debug!("signal_remote: ({},{}) offsets: ({},{}) {:?}",
+               x,
+               y,
+               offset_x,
+               offset_y,
+               travel_direction);
 
-        if (offset_x == 0 && travel_direction == Gate::West) || (offset_y == 0 && travel_direction == Gate::South) {
+        if (offset_x == 0 && travel_direction == Gate::West) ||
+           (offset_y == 0 && travel_direction == Gate::South) {
             return SignalType::NoSignal;
         }
 
         let (x, y) = match travel_direction {
-            Gate::North => (offset_x + x,     offset_y + y + 1),
-            Gate::South => (offset_x + x,     offset_y + y - 1),
-            Gate::West  => (offset_x + x - 1, offset_y + y),
-            Gate::East  => (offset_x + x + 1, offset_y + y),
+            Gate::North => (offset_x + x, offset_y + y + 1),
+            Gate::South => (offset_x + x, offset_y + y - 1),
+            Gate::West => (offset_x + x - 1, offset_y + y),
+            Gate::East => (offset_x + x + 1, offset_y + y),
         };
         debug!("signal-remote: new: ({},{}) {:?}", x, y, travel_direction);
 
@@ -474,24 +601,13 @@ impl Page {
             y: y,
             strength: strength,
             stim: stim,
-            origin_cell_type: cell_type
+            origin_cell_type: cell_type,
         })
     }
 
     pub fn update_signal(&mut self) -> u32 {
 
         debug!("Stale active cells: {}", self.active.len());
-
-        /*
-        for index in self.active.iter() {
-            let threshold = self.cells[index as usize].get_threshold();
-            let signal = self.cells[index as usize].get_signal();
-
-            if signal >= threshold {
-                self.cells[index as usize].clear_signal();
-            }
-        }
-        */
         self.active.clear();
 
         if self.local_signal.is_empty() {
@@ -502,41 +618,53 @@ impl Page {
         for signal in &self.local_signal {
 
 
-            match (signal.origin_cell_type, self.cells[signal.to_index].get_cell_type()) {
+            match (signal.origin_cell_type,
+                   self.cells[signal.to_index].get_cell_type()) {
                 (CellType::Axon, CellType::Axon) => {
                     let (x, y) = zorder::z_to_xy(signal.to_index as u32);
-                    debug!("({},{}) - ({},{}) == ({},{})", x, y, signal.x, signal.y, x as i32 - signal.x as i32, y as i32 - signal.y as i32);
-                    let (x, y): (i32, i32) = (x as i32 - signal.x as i32, y as i32 - signal.y as i32);
+                    debug!("({},{}) - ({},{}) == ({},{})",
+                           x,
+                           y,
+                           signal.x,
+                           signal.y,
+                           x as i32 - signal.x as i32,
+                           y as i32 - signal.y as i32);
+                    let (x, y): (i32, i32) = (x as i32 - signal.x as i32,
+                                              y as i32 - signal.y as i32);
 
 
-                    let direction = match (x,y) {
-                        (1,0)  => Gate::West,
-                        (-1,0) => Gate::East,
-                        (0,1)  => Gate::South,
-                        (0,-1) => Gate::North,
+                    let direction = match (x, y) {
+                        (1, 0) => Gate::West,
+                        (-1, 0) => Gate::East,
+                        (0, 1) => Gate::South,
+                        (0, -1) => Gate::North,
                         // This condition shouldn't really happen, but if it does (oops), invert
                         // the gate so it doesn't affect anything
-                        (_, _) => !self.cells[signal.to_index].get_gate()
+                        (_, _) => !self.cells[signal.to_index].get_gate(),
                     };
 
-                    debug!("{:?} == {:?}?", direction, self.cells[signal.to_index].get_gate());
+                    debug!("{:?} == {:?}?",
+                           direction,
+                           self.cells[signal.to_index].get_gate());
                     if direction == self.cells[signal.to_index].get_gate() {
                         self.cells[signal.to_index].add_signal(signal.strength);
                     }
 
-                },
+                }
                 (CellType::Axon, CellType::Dendrite) | (CellType::Axon, CellType::Body) => {
                     if signal.stim == true {
                         self.cells[signal.to_index].add_signal(signal.strength)
                     } else {
                         self.cells[signal.to_index].sub_signal(signal.strength)
                     }
-                },
-                (CellType::Dendrite, CellType::Dendrite)
-                    | (CellType::Dendrite, CellType::Body)
-                    | (CellType::Body, CellType::Dendrite)
-                    | (CellType::Body, CellType::Body)
-                    | (CellType::Body, CellType::Axon) => self.cells[signal.to_index].add_signal(signal.strength),
+                }
+                (CellType::Dendrite, CellType::Dendrite) |
+                (CellType::Dendrite, CellType::Body) |
+                (CellType::Body, CellType::Dendrite) |
+                (CellType::Body, CellType::Body) |
+                (CellType::Body, CellType::Axon) => {
+                    self.cells[signal.to_index].add_signal(signal.strength)
+                }
                 (_, _) => {}
             }
 
@@ -554,7 +682,12 @@ impl Page {
     pub fn add_signal(&mut self, x: u32, y: u32, strength: u8, stim: bool) {
         let target = zorder::xy_to_z(x, y);
 
-        debug!(">>>>>>>> Attempting to add remote signal: ({}, {}) ({}): {} stimulatory? {}", x, y, target, strength, stim);
+        debug!(">>>>>>>> Attempting to add remote signal: ({}, {}) ({}): {} stimulatory? {}",
+               x,
+               y,
+               target,
+               strength,
+               stim);
         if self.cells[target as usize].get_cell_type() != CellType::Empty {
             debug!("Inserting external signal");
             self.local_signal.push(LocalSignal {
@@ -563,19 +696,17 @@ impl Page {
                 to_index: target as usize,
                 strength: strength,
                 stim: stim,
-                origin_cell_type: CellType::Axon
+                origin_cell_type: CellType::Axon,
             });
         }
     }
-
-
 }
 
 
 #[cfg(test)]
 mod test {
     use super::{Page, Cell, CellType, Gate};
-    use super::ChangeType::{Local};
+    use super::ChangeType::Local;
     use test::Bencher;
 
     #[test]
@@ -620,8 +751,8 @@ mod test {
                 assert!(change.get_cell_type() == CellType::Axon);
                 assert!(change.get_gate() == Gate::South); // Gate is opposite of the growth direction
                 assert!(target == 2);
-            },
-            _ => assert!(1 == 2)
+            }
+            _ => assert!(1 == 2),
         }
 
         let change = Page::grow_local(&mut data, 1, 0, CellType::Dendrite, Gate::West, true);
@@ -636,8 +767,8 @@ mod test {
                 assert!(change.get_cell_type() == CellType::Dendrite);
                 assert!(change.get_gate() == Gate::East); // Gate is opposite of the growth direction
                 assert!(target == 0);
-            },
-            _ => assert!(1 == 2)
+            }
+            _ => assert!(1 == 2),
         }
 
     }
@@ -661,9 +792,7 @@ mod test {
     #[bench]
     fn bench_grow(b: &mut Bencher) {
         let mut page = Page::new(0.05, 0, 0, &[1, 2, 3, 4]);
-        b.iter(|| {
-            page.grow()
-        });
+        b.iter(|| page.grow());
     }
 
 }

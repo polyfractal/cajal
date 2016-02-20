@@ -1,6 +1,6 @@
 
 use rayon::par_iter::*;
-use self::page::{Page};
+use self::page::Page;
 use super::{ReportMemory, PAGE_SIZE, PAGE_WIDTH};
 
 pub use self::page::{Cell, CellType};
@@ -14,12 +14,13 @@ mod zorder;
 pub struct Grid {
     pages: Vec<Page>,
     dimension: u32,
-    pages_per_side: u32
+    pages_per_side: u32,
 }
 
 impl ReportMemory for Grid {
     fn memory(&self) -> u32 {
-        self.pages.into_par_iter()
+        self.pages
+            .into_par_iter()
             .map(|page| page.memory())
             .sum()
     }
@@ -27,11 +28,15 @@ impl ReportMemory for Grid {
 
 impl Grid {
     pub fn new(size: u32, density: f32, seed: &[usize]) -> Grid {
-        //todo assert size
+        // todo assert size
         let num_pages = size * size;
 
-        info!("Creating grid with {} pages per side ({} pages total), each with {} cells ({} total cells)",
-            size, num_pages, PAGE_SIZE, num_pages * PAGE_SIZE);
+        info!("Creating grid with {} pages per side ({} pages total), each with {} cells ({} \
+               total cells)",
+              size,
+              num_pages,
+              PAGE_SIZE,
+              num_pages * PAGE_SIZE);
 
         let mut pages = Vec::with_capacity(num_pages as usize);
         for i in 0..num_pages {
@@ -44,7 +49,7 @@ impl Grid {
         Grid {
             pages: pages,
             dimension: size * PAGE_WIDTH,
-            pages_per_side: size
+            pages_per_side: size,
         }
     }
 
@@ -61,13 +66,15 @@ impl Grid {
     pub fn grow_step(&mut self) -> u32 {
         debug!("Growing Pages...");
 
-        self.pages.par_iter_mut()
+        self.pages
+            .par_iter_mut()
             .weight_max()
             .for_each(|page| page.grow());;
 
-        let active_cells = self.pages.iter()
-                            .map(|page| page.get_active_cell_count())
-                            .fold(0u32, |acc, x| acc + x);
+        let active_cells = self.pages
+                               .iter()
+                               .map(|page| page.get_active_cell_count())
+                               .fold(0u32, |acc, x| acc + x);
 
         for i in 0..self.pages.len() {
             let changes = self.pages[i].get_remote_changes().clone();
@@ -80,16 +87,20 @@ impl Grid {
 
             for c in changes {
                 debug!("Absolute change position: ({},{})", c.x, c.y);
-                if !(c.x > 0 && c.x < self.dimension && c.y > 0 && c.y < self.dimension ) {
+                if !(c.x > 0 && c.x < self.dimension && c.y > 0 && c.y < self.dimension) {
                     debug!("x > 1 {}", c.x > 0);
                     debug!("x < dimension - 1{}", c.x < self.dimension);
                     debug!("y > 1 {}", c.y > 0);
-                    debug!("y < dimension - 1 {}", c.y < self.dimension );
+                    debug!("y < dimension - 1 {}", c.y < self.dimension);
 
                     continue;
                 }
                 self.get_mut_page(c.x, c.y)
-                    .add_change(c.x % PAGE_WIDTH, c.y % PAGE_WIDTH, c.cell, c.travel_direction, c.stim);
+                    .add_change(c.x % PAGE_WIDTH,
+                                c.y % PAGE_WIDTH,
+                                c.cell,
+                                c.travel_direction,
+                                c.stim);
             }
 
         }
@@ -98,7 +109,8 @@ impl Grid {
         debug!("Active cells after growth: {}", active_cells);
 
         debug!("Updating Pages...");
-        self.pages.par_iter_mut()
+        self.pages
+            .par_iter_mut()
             .weight_max()
             .for_each(|page| page.update());
 
@@ -118,7 +130,8 @@ impl Grid {
     pub fn signal_step(&mut self) -> u32 {
         debug!("Processing signals...");
 
-        self.pages.par_iter_mut()
+        self.pages
+            .par_iter_mut()
             .weight_max()
             .for_each(|page| page.signal());
 
@@ -134,11 +147,11 @@ impl Grid {
 
             for s in signals {
                 debug!("Absolute signal position: ({},{})", s.x, s.y);
-                if !(s.x > 0 && s.x < self.dimension && s.y > 0 && s.y < self.dimension ) {
+                if !(s.x > 0 && s.x < self.dimension && s.y > 0 && s.y < self.dimension) {
                     debug!("x > 1 {}", s.x > 0);
                     debug!("x < dimension - 1{}", s.x < self.dimension);
                     debug!("y > 1 {}", s.y > 0);
-                    debug!("y < dimension - 1 {}", s.y < self.dimension );
+                    debug!("y < dimension - 1 {}", s.y < self.dimension);
 
                     continue;
                 }
@@ -148,7 +161,8 @@ impl Grid {
         }
 
         debug!("Updating Pages...");
-        self.pages.par_iter_mut()
+        self.pages
+            .par_iter_mut()
             .weight_max()
             .map(|page| page.update_signal())
             .sum()
@@ -186,7 +200,7 @@ impl Default for Grid {
 
 #[cfg(test)]
 mod test {
-    use super::{Grid};
+    use super::Grid;
 
     #[test]
     fn grid_default_params() {

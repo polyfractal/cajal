@@ -2,33 +2,33 @@
 use num::FromPrimitive;
 use std::fmt;
 use std::ops::{BitAnd, BitOr, Not};
-use rand::{Rng};
+use rand::Rng;
 use rand::Rand;
 use rand::distributions::{IndependentSample, Range};
 
-const CELL_TYPE_MASK: u32  = 0b0000000000_00_00_00_000000_0000_0_00_111;  // ---
-const GATE_MASK: u32       = 0b0000000000_00_00_00_000000_0000_0_11_000;  // | Growth Phase
-const STIM_MASK: u32       = 0b0000000000_00_00_00_000000_0000_1_00_000;  // |
-const CHROMO_MASK: u32     = 0b0000000000_00_00_00_000000_1111_0_00_000;  // ---
+const CELL_TYPE_MASK: u32 = 0b0000000000_00_00_00_000000_0000_0_00_111;  // ---
+const GATE_MASK: u32      = 0b0000000000_00_00_00_000000_0000_0_11_000;  // | Growth Phase
+const STIM_MASK: u32      = 0b0000000000_00_00_00_000000_0000_1_00_000;  // |
+const CHROMO_MASK: u32    = 0b0000000000_00_00_00_000000_1111_0_00_000;  // ---
 
-const STRENGTH_MASK: u32   = 0b0000_000000_00_00_00_000000_1111_0_00_000;  // ---
-const THRESHOLD_MASK: u32  = 0b0000_000000_00_00_00_111111_0000_0_00_000;  // | Signal Phase
-const POT_1_MASK: u32      = 0b0000_000000_00_00_11_000000_0000_0_00_000;  // |
-const POT_2_MASK: u32      = 0b0000_000000_00_11_00_000000_0000_0_00_000;  // |
-const POT_3_MASK: u32      = 0b0000_000000_11_00_00_000000_0000_0_00_000;  // |
-const SIGNAL_MASK: u32     = 0b0000_111111_00_00_00_000000_0000_0_00_000;  // ---
+const STRENGTH_MASK: u32  = 0b0000_000000_00_00_00_000000_1111_0_00_000;  // ---
+const THRESHOLD_MASK: u32 = 0b0000_000000_00_00_00_111111_0000_0_00_000;  // | Signal Phase
+const POT_1_MASK: u32     = 0b0000_000000_00_00_11_000000_0000_0_00_000;  // |
+const POT_2_MASK: u32     = 0b0000_000000_00_11_00_000000_0000_0_00_000;  // |
+const POT_3_MASK: u32     = 0b0000_000000_11_00_00_000000_0000_0_00_000;  // |
+const SIGNAL_MASK: u32    = 0b0000_111111_00_00_00_000000_0000_0_00_000;  // ---
 
-const CELL_TYPE_OFFSET: u8  = 0;
-const GATE_OFFSET: u8       = 3;
-const STIM_OFFSET: u8       = 5;
-const CHROMO_OFFSET: u8     = 6;
+const CELL_TYPE_OFFSET: u8 = 0;
+const GATE_OFFSET: u8 = 3;
+const STIM_OFFSET: u8 = 5;
+const CHROMO_OFFSET: u8 = 6;
 
-const STRENGTH_OFFSET: u8   = 6;
-const THRESHOLD_OFFSET: u8  = 10;
-const POT_1_OFFSET: u8      = 16;
-const POT_2_OFFSET: u8      = 18;
-const POT_3_OFFSET: u8      = 20;
-const SIGNAL_OFFSET: u8     = 22;
+const STRENGTH_OFFSET: u8 = 6;
+const THRESHOLD_OFFSET: u8 = 10;
+const POT_1_OFFSET: u8 = 16;
+const POT_2_OFFSET: u8 = 18;
+const POT_3_OFFSET: u8 = 20;
+const SIGNAL_OFFSET: u8 = 22;
 
 enum_from_primitive! {
     #[derive(Debug, PartialEq, Copy, Clone)]
@@ -45,10 +45,10 @@ impl Not for CellType {
 
     fn not(self) -> CellType {
         match self {
-           CellType::Body => CellType::Empty,
-           CellType::Empty => CellType::Body,
-           CellType::Axon => CellType::Dendrite,
-           CellType::Dendrite => CellType::Axon,
+            CellType::Body => CellType::Empty,
+            CellType::Empty => CellType::Body,
+            CellType::Axon => CellType::Dendrite,
+            CellType::Dendrite => CellType::Axon,
         }
     }
 }
@@ -69,10 +69,10 @@ impl Not for Gate {
 
     fn not(self) -> Gate {
         match self {
-           Gate::North => Gate::South,
-           Gate::South => Gate::North,
-           Gate::East => Gate::West,
-           Gate::West => Gate::East
+            Gate::North => Gate::South,
+            Gate::South => Gate::North,
+            Gate::East => Gate::West,
+            Gate::West => Gate::East,
         }
     }
 }
@@ -83,7 +83,7 @@ impl fmt::Binary for Gate {
             Gate::North => 0b00,
             Gate::West => 0b01,
             Gate::South => 0b10,
-            Gate::East => 0b11
+            Gate::East => 0b11,
         };
         write!(f, "{:#b}", val)
     }
@@ -97,7 +97,7 @@ impl Rand for Gate {
             1 => Gate::West,
             2 => Gate::South,
             3 => Gate::East,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }
@@ -133,7 +133,7 @@ impl Chromosome {
         match other {
             // Block is special since it can't co-exist with other flags
             Chromosome::Block => *self == Chromosome::Block,
-            _ => (*self & other) == other
+            _ => (*self & other) == other,
         }
     }
 
@@ -145,19 +145,19 @@ impl Chromosome {
             Chromosome::South => Chromosome::NorthWestEast,
             Chromosome::East => Chromosome::NorthWestSouth,
 
-            Chromosome::NorthWest  => Chromosome::SouthEast,
+            Chromosome::NorthWest => Chromosome::SouthEast,
             Chromosome::NorthSouth => Chromosome::WestEast,
-            Chromosome::NorthEast  => Chromosome::WestSouth,
-            Chromosome::WestSouth  => Chromosome::NorthEast,
-            Chromosome::WestEast   => Chromosome::NorthSouth,
-            Chromosome::SouthEast  => Chromosome::NorthWest,
+            Chromosome::NorthEast => Chromosome::WestSouth,
+            Chromosome::WestSouth => Chromosome::NorthEast,
+            Chromosome::WestEast => Chromosome::NorthSouth,
+            Chromosome::SouthEast => Chromosome::NorthWest,
 
-            Chromosome::NorthWestSouth  => Chromosome::East,
-            Chromosome::NorthEastSouth  => Chromosome::West,
-            Chromosome::NorthWestEast   => Chromosome::South,
-            Chromosome::WestSouthEast   => Chromosome::North,
+            Chromosome::NorthWestSouth => Chromosome::East,
+            Chromosome::NorthEastSouth => Chromosome::West,
+            Chromosome::NorthWestEast => Chromosome::South,
+            Chromosome::WestSouthEast => Chromosome::North,
 
-            Chromosome::All => Chromosome::Block
+            Chromosome::All => Chromosome::Block,
         }
     }
 }
@@ -171,19 +171,19 @@ impl fmt::Binary for Chromosome {
             Chromosome::South => 0b0100,
             Chromosome::East => 0b1000,
 
-            Chromosome::NorthWest  => 0b0011,
+            Chromosome::NorthWest => 0b0011,
             Chromosome::NorthSouth => 0b0101,
-            Chromosome::NorthEast  => 0b1001,
-            Chromosome::WestSouth  => 0b0110,
-            Chromosome::WestEast   => 0b1010,
-            Chromosome::SouthEast  => 0b1100,
+            Chromosome::NorthEast => 0b1001,
+            Chromosome::WestSouth => 0b0110,
+            Chromosome::WestEast => 0b1010,
+            Chromosome::SouthEast => 0b1100,
 
-            Chromosome::NorthWestSouth  => 0b0111,
-            Chromosome::NorthEastSouth  => 0b1101,
-            Chromosome::NorthWestEast   => 0b1011,
-            Chromosome::WestSouthEast   => 0b1110,
+            Chromosome::NorthWestSouth => 0b0111,
+            Chromosome::NorthEastSouth => 0b1101,
+            Chromosome::NorthWestEast => 0b1011,
+            Chromosome::WestSouthEast => 0b1110,
 
-            Chromosome::All => 0b1111
+            Chromosome::All => 0b1111,
 
         };
         write!(f, "{:#b}", val)
@@ -213,7 +213,7 @@ impl Rand for Chromosome {
             14 => Chromosome::WestSouthEast,
 
             15 => Chromosome::All,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }
@@ -224,7 +224,7 @@ impl BitAnd for Chromosome {
     fn bitand(self, rhs: Chromosome) -> Chromosome {
         match Chromosome::from_u32(self as u32 & rhs as u32) {
             Some(c) => c,
-            None => unreachable!()
+            None => unreachable!(),
         }
     }
 }
@@ -235,7 +235,7 @@ impl BitOr for Chromosome {
     fn bitor(self, rhs: Chromosome) -> Chromosome {
         match Chromosome::from_u32(self as u32 | rhs as u32) {
             Some(c) => c,
-            None => unreachable!()
+            None => unreachable!(),
         }
     }
 }
@@ -245,8 +245,8 @@ impl From<Gate> for Chromosome {
         match gate {
             Gate::North => Chromosome::North,
             Gate::South => Chromosome::South,
-            Gate::East  => Chromosome::East,
-            Gate::West  => Chromosome::West
+            Gate::East => Chromosome::East,
+            Gate::West => Chromosome::West,
         }
     }
 }
@@ -254,14 +254,12 @@ impl From<Gate> for Chromosome {
 
 #[derive(Clone, Copy, Debug)]
 pub struct Cell {
-    data: u32
+    data: u32,
 }
 
 impl Cell {
     pub fn new() -> Cell {
-        Cell {
-            data: 0
-        }
+        Cell { data: 0 }
     }
 
     pub fn set_cell_type(&mut self, cell_type: CellType) {
@@ -271,7 +269,7 @@ impl Cell {
     pub fn get_cell_type(&self) -> CellType {
         match CellType::from_u32((self.data & CELL_TYPE_MASK) >> CELL_TYPE_OFFSET) {
             Some(ct) => ct,
-            None => unreachable!()
+            None => unreachable!(),
         }
     }
 
@@ -282,7 +280,7 @@ impl Cell {
     pub fn get_gate(&self) -> Gate {
         match Gate::from_u32((self.data & GATE_MASK) >> GATE_OFFSET) {
             Some(g) => g,
-            None => unreachable!()
+            None => unreachable!(),
         }
     }
 
@@ -293,7 +291,7 @@ impl Cell {
     pub fn get_chromosome(&self) -> Chromosome {
         match Chromosome::from_u32((self.data & CHROMO_MASK) >> CHROMO_OFFSET) {
             Some(c) => c,
-            None => unreachable!()
+            None => unreachable!(),
         }
     }
 
@@ -304,7 +302,7 @@ impl Cell {
     pub fn set_threshold(&mut self, threshold: u8) {
         self.data = match threshold {
             0...63 => (self.data & !THRESHOLD_MASK) | ((threshold as u32) << THRESHOLD_OFFSET),
-            _ => (self.data & !THRESHOLD_MASK) | (63 << THRESHOLD_OFFSET)
+            _ => (self.data & !THRESHOLD_MASK) | (63 << THRESHOLD_OFFSET),
         };
     }
 
@@ -316,11 +314,11 @@ impl Cell {
         ((self.data & SIGNAL_MASK) >> SIGNAL_OFFSET) as u8
     }
 
-    //#[allow(exceeding_bitshifts)]
+    // #[allow(exceeding_bitshifts)]
     pub fn set_signal(&mut self, signal: u8) {
         self.data = match signal {
             0...63 => (self.data & !SIGNAL_MASK) | ((signal as u32) << SIGNAL_OFFSET),
-            _ => (self.data & !SIGNAL_MASK) | (63 << SIGNAL_OFFSET)
+            _ => (self.data & !SIGNAL_MASK) | (63 << SIGNAL_OFFSET),
         }
     }
 
@@ -330,8 +328,6 @@ impl Cell {
         if sig > 63 {
             sig = 63;
         }
-
-        debug!("Adding signal {} to {} => {}", signal, self.get_signal(), sig);
 
         self.data = (self.data & !SIGNAL_MASK) | ((sig as u32) << SIGNAL_OFFSET);
     }
@@ -343,7 +339,6 @@ impl Cell {
             sig = 0;
         }
 
-        debug!("Subtracting signal {} from {} => {}", signal, self.get_signal(), sig);
         self.data = (self.data & !SIGNAL_MASK) | ((sig as u32) << SIGNAL_OFFSET);
     }
 
@@ -355,7 +350,7 @@ impl Cell {
         match (self.data & STIM_MASK) >> STIM_OFFSET {
             1 => true,
             0 => false,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -485,11 +480,11 @@ mod test {
         c.sub_signal(2);
         assert!(c.get_signal() == 0u8);
 
-        //underflow
+        // underflow
         c.sub_signal(10);
         assert!(c.get_signal() == 0u8);
 
-        //overflow
+        // overflow
         c.add_signal(100);
         assert!(c.get_signal() == 63u8);
 
