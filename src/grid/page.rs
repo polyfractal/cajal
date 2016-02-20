@@ -188,7 +188,11 @@ impl Page {
                     let change = Page::process_chromosome_direction(*direction, &mut cells, x, y,
                                     self.offset_x, self.offset_y, cell_type, stim);
 
-                    Page::persist_change(&mut self.changes, &mut self.remote_changes, change);
+                    match change {
+                        ChangeType::Local((target, change)) => {self.changes.insert(target, change);},
+                        ChangeType::Remote(change) => {self.remote_changes.push(change);},
+                        ChangeType::NoChange => {}
+                    }
                 }
             }
         }
@@ -203,14 +207,6 @@ impl Page {
 
     pub fn get_active_cell_count(&self) -> u32 {
         self.changes.len() as u32
-    }
-
-    fn persist_change(local: &mut HashMap<u32, Cell>, remote: &mut Vec<RemoteChange>, change: ChangeType) {
-        match change {
-            Local((target, change)) => {local.insert(target, change);},
-            Remote(change) => {remote.push(change);},
-            NoChange => {}
-        }
     }
 
     fn process_chromosome_direction(travel_direction: Gate, cells: &mut Vec<Cell>,
